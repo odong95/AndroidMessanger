@@ -7,8 +7,12 @@ package com.waspteam.waspmessenger;
 public class Conversation
 {
 
-    private String mNickname;
-    private String mHandle;
+    @com.google.gson.annotations.SerializedName("id")
+    public String mId;
+    @com.google.gson.annotations.SerializedName("nickname")
+    public String mNickname;
+    @com.google.gson.annotations.SerializedName("handle")
+    public String mHandle;
 
     public Conversation()
     {
@@ -47,7 +51,13 @@ public class Conversation
         mNickname=id;
     }
 
+    public String getId() {
+        return mId;
+    }
 
+    public final void setId(String id) {
+        mId = id;
+    }
 
 
 }

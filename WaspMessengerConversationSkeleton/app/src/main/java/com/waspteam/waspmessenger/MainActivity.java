@@ -66,18 +66,12 @@ public class MainActivity extends AppCompatActivity {
 
             mConvoTable = mClient.getTable(Conversation.class);
 
-
             // Create an adapter to bind the items with the view
             mAdapter = new ConversationAdapter(this, R.layout.row_conversation);
             ListView listViewConversation = (ListView) findViewById(R.id.listView_conversation);
             listViewConversation.setAdapter(mAdapter);
 
-            //*****INSERT ITEM TO DATABASE, HARDCODED, REMOVE LATER******
-            Conversation item = new Conversation();
-            item.setId("123");
-            item.setNickname("Brian");
-            item.setHandle("Lately");
-            mConvoTable.insert(item).get();
+
 
 
         } catch (MalformedURLException e) {
@@ -148,7 +142,7 @@ public class MainActivity extends AppCompatActivity {
     {
         final Conversation addConversation = new Conversation(mConversationName.getText().toString(),mConversationCode.getText().toString() );
 
-        //Inserting into Azure SQL Happens here, and only add to the adapter once it is inserted
+        mConvoTable.insert(addConversation);
         mAdapter.add(addConversation);
 
 

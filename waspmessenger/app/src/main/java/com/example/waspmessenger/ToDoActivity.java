@@ -90,9 +90,7 @@ public class ToDoActivity extends Activity {
         mProgressBar.setVisibility(ProgressBar.GONE);
 
         try {
-            // Create the Mobile Service Client instance, using the provided
-
-            // Mobile Service URL and key
+            // Create the Mobile Service Client instance
             mClient = new MobileServiceClient(
                     "https://waspmessenger.azurewebsites.net",
                     this).withFilter(new ProgressFilter());

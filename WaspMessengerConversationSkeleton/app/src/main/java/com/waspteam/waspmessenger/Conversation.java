@@ -8,11 +8,11 @@ public class Conversation
 {
 
     @com.google.gson.annotations.SerializedName("id")
-    public String mId;
+    private String mId;
     @com.google.gson.annotations.SerializedName("nickname")
-    public String mNickname;
+    private String mNickname;
     @com.google.gson.annotations.SerializedName("handle")
-    public String mHandle;
+    private String mHandle;
 
     public Conversation()
     {

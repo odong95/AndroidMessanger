@@ -2,7 +2,6 @@ package com.waspteam.waspmessenger;
 
 import android.app.Activity;
 import android.content.Context;
-import android.content.Intent;
 import android.support.design.widget.Snackbar;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -11,17 +10,17 @@ import android.widget.ArrayAdapter;
 import android.widget.TextView;
 
 /**
- * Created by Julian on 11/7/2016.
+ * Created by Julian on 11/8/2016.
  */
 
-public class ConversationAdapter extends ArrayAdapter<Conversation>
+public class MessageAdapter extends ArrayAdapter<Message>
 {
     Context mContext;
 
     int mLayoutID;
 
     //Setup both parent ArrayAdapter and ConversationAdapter variables
-    public ConversationAdapter(Context context, int layoutID)
+    public MessageAdapter(Context context, int layoutID)
     {
         super(context, layoutID);
 
@@ -35,7 +34,7 @@ public class ConversationAdapter extends ArrayAdapter<Conversation>
     {
         View row = alterView;
 
-        final Conversation bindConversation = getItem(layoutPos);
+        final Message bindMessage = getItem(layoutPos);
 
         if(row == null)
         {
@@ -43,28 +42,26 @@ public class ConversationAdapter extends ArrayAdapter<Conversation>
             row = inflater.inflate(mLayoutID, parent, false);
         }
 
-        row.setTag(bindConversation);
-        final TextView convText = (TextView) row.findViewById(R.id.conversationName);
-        convText.setText(bindConversation.getNickname());
-        convText.setEnabled(true);
+        row.setTag(bindMessage);
+        final TextView messageText = (TextView) row.findViewById(R.id.messageText);
+        messageText.setText(bindMessage.getFrom() + ": " + bindMessage.getText());
+        messageText.setEnabled(true);
 
+        final TextView timeText = (TextView) row.findViewById(R.id.messageTimestamp);
+        timeText.setText(bindMessage.getTime());
+        timeText.setEnabled(true);
+
+        /*
         //Give each item an onClickListener to allow it to load Messaging Activities
 
         View.OnClickListener clickListener = new View.OnClickListener()
         {
             @Override
             public void onClick(View view)
-                {
-                    Intent intent = new Intent(view.getContext(), MessagingActivity.class);
-                    String handle = convText.getText().toString();
-                    intent.putExtra(MainActivity.START_MESSAGING,handle);
-                    view.getContext().startActivity(intent);
-
-                    /*
-                    Snackbar.make(view, "Start a new Messaging Activity between user and " + convText.getText().toString() + ".", Snackbar.LENGTH_LONG)
-                            .setAction("Action", null).show();
-                    */
-                }
+            {
+                Snackbar.make(view, "Start a new Messaging Activity between user and " + convText.getText().toString() + ".", Snackbar.LENGTH_LONG)
+                        .setAction("Action", null).show();
+            }
         };
         convText.setOnClickListener(clickListener);
 
@@ -80,6 +77,7 @@ public class ConversationAdapter extends ArrayAdapter<Conversation>
             }
         };
         convText.setOnLongClickListener(longClickListener);
+        */
 
         return row;
     }

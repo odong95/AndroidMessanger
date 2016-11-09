@@ -14,12 +14,13 @@ import android.widget.LinearLayout;
 import android.widget.ListView;
 
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity
+{
+    public final static String START_MESSAGING = "com.waspteam.waspmessenger.MESSAGING";
 
     EditText mConversationName, mConversationCode;
 
     ConversationAdapter mAdapter;
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -95,8 +96,6 @@ public class MainActivity extends AppCompatActivity {
 
         //Inserting into Azure SQL Happens here, and only add to the adapter once it is inserted
         mAdapter.add(addConversation);
-
-
     }
 
     private boolean validInput(android.text.Editable field)
@@ -104,5 +103,7 @@ public class MainActivity extends AppCompatActivity {
         //Peculiarly, isEmpty returns true when the field is filled
         return TextUtils.isEmpty(field);
     }
+
+
 
 }

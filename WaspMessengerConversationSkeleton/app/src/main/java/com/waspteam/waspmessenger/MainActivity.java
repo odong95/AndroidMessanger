@@ -1,5 +1,6 @@
 package com.waspteam.waspmessenger;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
@@ -31,6 +32,10 @@ public class MainActivity extends AppCompatActivity
 
         mConversationName = (EditText) findViewById(R.id.newConversationNickname);
         mConversationCode = (EditText) findViewById(R.id.newConversationHandleCode);
+
+        //Gets String passed the login activity
+        Intent intent = getIntent();
+        final String username = intent.getStringExtra("username");
 
         mAdapter = new ConversationAdapter(this, R.layout.row_conversation);
         ListView listViewConversation = (ListView) findViewById(R.id.listView_conversation);

@@ -24,10 +24,11 @@ import com.microsoft.windowsazure.mobileservices.*;
 import com.microsoft.windowsazure.mobileservices.http.OkHttpClientFactory;
 import com.microsoft.windowsazure.mobileservices.table.MobileServiceTable;
 import com.squareup.okhttp.OkHttpClient;
-
 import com.microsoft.windowsazure.mobileservices.MobileServiceClient;
 
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
@@ -41,10 +42,10 @@ import javax.crypto.spec.PBEKeySpec;
 
 import static com.microsoft.windowsazure.mobileservices.table.query.QueryOperations.val;
 
-
 public class LoginActivity extends AppCompatActivity {
     MobileServiceClient mClient = null;
     MobileServiceTable<User> userTable = null;
+    byte[] pepper ={8,-52,-61,86,-55,-75,-94,14,99,-36,100,118,74,20,101,9,49,118,-62,27,121,-14,-97,-24,45,-113,107,126,94,-48,-81,36,-55,-92,-34,-11};
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -226,13 +227,16 @@ public class LoginActivity extends AppCompatActivity {
         return salt;
     }
 
-    private byte[] hashPassword(String password, byte[] salt) throws NoSuchAlgorithmException, InvalidKeySpecException
-    {
-        PBEKeySpec key = new PBEKeySpec(password.toCharArray(), salt, 100, 256);
+    private byte[] hashPassword(String password, byte[] salt) throws NoSuchAlgorithmException, InvalidKeySpecException, IOException {
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream( );
+        outputStream.write( salt );
+        outputStream.write( pepper );
+        byte saltPepper[] = outputStream.toByteArray( );
+        PBEKeySpec key = new PBEKeySpec(password.toCharArray(), saltPepper, 100, 256);
         SecretKeyFactory keyGen = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA1");
         return keyGen.generateSecret(key).getEncoded();
     }
-    private boolean checkPassword(String password,String hash, byte[] salt) throws NoSuchAlgorithmException, InvalidKeySpecException, UnsupportedEncodingException {
+    private boolean checkPassword(String password,String hash, byte[] salt) throws NoSuchAlgorithmException, InvalidKeySpecException, IOException {
         byte[] hashPass = hashPassword(password,salt);
         boolean result = new String(hashPass, "ISO-8859-1").equals(hash);
         return result;

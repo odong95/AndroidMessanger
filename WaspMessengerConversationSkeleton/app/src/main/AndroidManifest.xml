@@ -9,9 +9,11 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
         <activity
-            android:name=".MainActivity"
+            android:name=".ConversationActivity"
             android:label="@string/app_name"
             android:theme="@style/AppTheme.NoActionBar">
+        </activity>
+        <activity android:name=".LoginActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -22,6 +24,6 @@
             android:name=".MessagingActivity"
             android:label="@string/title_activity_messaging"
             android:theme="@style/AppTheme.NoActionBar"></activity>
-    </application>
+        </application>
 
 </manifest>

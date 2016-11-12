@@ -1,7 +1,10 @@
 package com.waspteam.waspmessenger;
 
+import android.app.ProgressDialog;
+import android.content.Context;
 import android.content.Intent;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
@@ -18,15 +21,25 @@ import android.widget.LinearLayout;
 import android.widget.ListView;
 
 import com.microsoft.windowsazure.mobileservices.*;
+import com.microsoft.windowsazure.mobileservices.http.OkHttpClientFactory;
 import com.microsoft.windowsazure.mobileservices.table.MobileServiceTable;
+import com.squareup.okhttp.OkHttpClient;
 
+import com.microsoft.windowsazure.mobileservices.MobileServiceClient;
+
+
+import java.io.UnsupportedEncodingException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.spec.InvalidKeySpecException;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
+
+import static com.microsoft.windowsazure.mobileservices.table.query.QueryOperations.val;
 
 
 public class LoginActivity extends AppCompatActivity {
@@ -43,6 +56,15 @@ public class LoginActivity extends AppCompatActivity {
         try {
             mClient = new MobileServiceClient("http://waspsmessenger.azurewebsites.net", this);
             userTable = mClient.getTable(User.class);
+            mClient.setAndroidHttpClientFactory(new OkHttpClientFactory() {
+                @Override
+                public OkHttpClient createOkHttpClient() {
+                    OkHttpClient client = new OkHttpClient();
+                    client.setReadTimeout(20, TimeUnit.SECONDS);
+                    client.setWriteTimeout(20, TimeUnit.SECONDS);
+                    return client;
+                }
+            });
         }
         catch(Exception e){}
 
@@ -52,36 +74,47 @@ public class LoginActivity extends AppCompatActivity {
                     .setNegativeButton("Try again", null)
                     .create().show();
         }
-        /*
-        if(userTable==null) {
-            AlertDialog.Builder builder = new AlertDialog.Builder(LoginActivity.this);
-            builder.setMessage("Client")
-                    .setNegativeButton("Try again", null)
-                    .create().show();
-        }*/
+
+
         Register.setOnClickListener(new View.OnClickListener(){
             @Override
             public void onClick(View v)
             {
                 final String username = etUsername.getText().toString();
                 final String password = etPassword.getText().toString();
-
-                boolean result = register(username, password);
-                if(!result)
+                AsyncTask<String, Void, Void> task = new AsyncTask<String, Void, Void>()
                 {
-                    AlertDialog.Builder builder = new AlertDialog.Builder(LoginActivity.this);
-                    builder.setMessage("That username is already taken")
-                            .setNegativeButton("Try again", null)
-                            .create().show();
 
-                }
-                else
-                {
-                    AlertDialog.Builder builder = new AlertDialog.Builder(LoginActivity.this);
-                    builder.setMessage("Successful Register!")
-                            .setNegativeButton("Continue", null)
-                            .create().show();
-                }
+                    @Override
+                    protected Void doInBackground(String[] objects) {
+                        if (register(objects[0], objects[1])) {
+                            runOnUiThread(new Runnable(){
+                                @Override
+                                public void run() {
+                                    AlertDialog.Builder builder = new AlertDialog.Builder(LoginActivity.this);
+                                    builder.setMessage("Successful Register!")
+                                            .setNegativeButton("Continue", null)
+                                            .create().show();
+                                }
+                            });
+
+                        } else
+                            runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    AlertDialog.Builder builder = new AlertDialog.Builder(LoginActivity.this);
+                                    builder.setMessage("That username is already taken")
+                                            .setNegativeButton("Try agan", null)
+                                            .create().show();
+                                }
+                            });
+
+                        return null;
+                    }
+                };
+                task.execute(username, password);
+                etUsername.setText("");
+                etPassword.setText("");
             }
         });
         bLogin.setOnClickListener(new View.OnClickListener(){
@@ -91,47 +124,63 @@ public class LoginActivity extends AppCompatActivity {
                 final String username = etUsername.getText().toString();
                 final String password = etPassword.getText().toString();
 
-                boolean result = login(username, password);
-
-                if(!result)
+                AsyncTask<String, Void, Void> task = new AsyncTask<String, Void, Void>()
                 {
-                    AlertDialog.Builder builder = new AlertDialog.Builder(LoginActivity.this);
-                    builder.setMessage("Login Failed")
-                            .setNegativeButton("Try agan", null)
-                            .create().show();
 
-                }
-                else
-                {
-                    Intent intent = new Intent(LoginActivity.this, MainActivity.class);
-                    intent.putExtra("username", username);
-                    LoginActivity.this.startActivity(intent);
-                }
+                    @Override
+                    protected Void doInBackground(String[] objects) {
+                        if (login(objects[0], objects[1])) {
+                            runOnUiThread(new Runnable(){
+                                @Override
+                                public void run() {
+                                    Intent intent = new Intent(LoginActivity.this, MainActivity.class);
+                                    intent.putExtra("username", username);
+                                    LoginActivity.this.startActivity(intent);
+                                }
+                            });
 
+                        } else
+                            runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    AlertDialog.Builder builder = new AlertDialog.Builder(LoginActivity.this);
+                                    builder.setMessage("Login Failed")
+                                            .setNegativeButton("Try again", null)
+                                            .create().show();
+                                }
+                            });
+
+                        return null;
+                    }
+                };
+                task.execute(username, password);
+                etUsername.setText("");
+                etPassword.setText("");
             }
         });
 
     }
+
     public boolean register(String username, String password)
     {
         try{
             //check to see if username is available
-            List<User> result = userTable.where()
-                    .field("username").eq(false)
-                    .execute().get();
-            if(!result.isEmpty())
-                return false;
+
+           if(!isAvailable(username))
+               return false;
             //Generate salt and hash the password
             byte[] salt = generateSalt();
+            String salt1 = new String (salt, "ISO-8859-1");
+            byte[] salt2 = salt1.getBytes("ISO-8859-1");
             byte[] hash = hashPassword(password, salt);
             //insert new user into table
             User user = new User(username, hash, salt);
-            userTable.insert(user).get();
+            userTable.insert(user);
             return true;
         }
         catch(Exception e)
         {
-            e.printStackTrace();
+            createAndShowDialog(e, "error");
         }
         return false;
     }
@@ -142,12 +191,14 @@ public class LoginActivity extends AppCompatActivity {
      * @param password
      * @return true on success </br> false on failure
      */
+
     public boolean login(String username, String password) {
         try{
             List<User> result = userTable.where()
-                    .field("username").eq(false)
+                    .field("username").eq(username)
                     .execute().get();
-            if(checkPassword(password, result.get(0).password.getBytes(), result.get(0).salt.getBytes()))
+            User user = result.get(0);
+            if(checkPassword(password, result.get(0).password, result.get(0).salt.getBytes("ISO-8859-1")))
             {
                 return true;
             }
@@ -181,9 +232,48 @@ public class LoginActivity extends AppCompatActivity {
         SecretKeyFactory keyGen = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA1");
         return keyGen.generateSecret(key).getEncoded();
     }
-    private boolean checkPassword(String password, byte[] hash, byte[] salt) throws NoSuchAlgorithmException, InvalidKeySpecException
-    {
+    private boolean checkPassword(String password,String hash, byte[] salt) throws NoSuchAlgorithmException, InvalidKeySpecException, UnsupportedEncodingException {
         byte[] hashPass = hashPassword(password,salt);
-        return new String(hashPass).equals(new String (hash));
+        boolean result = new String(hashPass, "ISO-8859-1").equals(hash);
+        return result;
+    }
+    private boolean isAvailable(final String username) throws ExecutionException, InterruptedException {
+
+        try {
+
+            final List<User> results = userTable.where()
+                    .field("username").eq(username)
+                    .execute().get();
+            //results.add(new User("assas", "asasa".getBytes(),"asasas".getBytes()));
+            if (results.size()==0)
+                return true;
+        } catch (final Exception e) {
+
+            createAndShowDialogFromTask(e, "Error");
+        }
+        return false;
+    }
+
+    private void createAndShowDialogFromTask(final Exception exception, String title) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                createAndShowDialog(exception, "Error");
+            }
+        });
+    }
+    private void createAndShowDialog(Exception exception, String title) {
+        Throwable ex = exception;
+        if(exception.getCause() != null){
+            ex = exception.getCause();
+        }
+        createAndShowDialog(ex.getMessage(), title);
+    }
+    private void createAndShowDialog(final String message, final String title) {
+        final android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(this);
+
+        builder.setMessage(message);
+        builder.setTitle(title);
+        builder.create().show();
     }
 }

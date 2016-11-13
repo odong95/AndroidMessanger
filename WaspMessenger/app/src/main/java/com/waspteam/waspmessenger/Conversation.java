@@ -8,48 +8,33 @@ public class Conversation
 {
 
     @com.google.gson.annotations.SerializedName("id")
-    private String mId;
-    @com.google.gson.annotations.SerializedName("nickname")
-    private String mNickname;
-    @com.google.gson.annotations.SerializedName("handle")
-    private String mHandle;
+    public String mId;
+    @com.google.gson.annotations.SerializedName("handleB")
+    public String mHandleB;
+    @com.google.gson.annotations.SerializedName("nicknameA")
+    public String mNicknameA;
+    @com.google.gson.annotations.SerializedName("handleA")
+    public String mHandleA;
+    @com.google.gson.annotations.SerializedName("nicknameB")
+    public String mNicknameB;
 
     public Conversation()
     {
 
     }
 
-    public Conversation(String name, String handle)
+    public Conversation(String handle, String nick)
     {
-        this.setNickname(name);
         this.setHandle(handle);
+        this.setNick(nick);
     }
 
-    @Override
-    public String toString()
-    {
-        return getNickname();
-    }
+    public String getHandle(){ return mHandleB; }
+    public String getNickname() { return mNicknameB; }
 
-    public String getHandle()
-    {
-        return mHandle;
-    }
+    public void setHandle(String n) { mHandleB=n;}
 
-    public String getNickname()
-    {
-        return mNickname;
-    }
-
-    public void setHandle(String n)
-    {
-        mHandle=n;
-    }
-
-    public void setNickname(String id)
-    {
-        mNickname=id;
-    }
+    public void setNick(String n) { mNicknameA=n;}
 
 
 

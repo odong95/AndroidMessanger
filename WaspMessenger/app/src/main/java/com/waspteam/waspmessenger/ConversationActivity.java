@@ -19,6 +19,9 @@ import android.view.View;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ListView;
+
+import java.util.List;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 import com.google.common.util.concurrent.FutureCallback;
@@ -72,7 +75,7 @@ public class ConversationActivity extends AppCompatActivity
     private EditText mConversationName, mConversationCode;
     private MobileServiceClient mClient;
     private MobileServiceTable<Conversation> mConvoTable;
-
+    String username = "";
     ConversationAdapter mAdapter;
 
     @Override
@@ -87,7 +90,7 @@ public class ConversationActivity extends AppCompatActivity
 
         //Gets String passed the login activity
         Intent intent = getIntent();
-        final String username = intent.getStringExtra("username");
+        username = intent.getStringExtra("username");
 
         mAdapter = new ConversationAdapter(this, R.layout.row_conversation);
         ListView listViewConversation = (ListView) findViewById(R.id.listView_conversation);
@@ -100,8 +103,19 @@ public class ConversationActivity extends AppCompatActivity
             mClient = new MobileServiceClient(
                     "https://waspsmessenger.azurewebsites.net",
                     this);
-
             mConvoTable = mClient.getTable(Conversation.class);
+
+            mClient.setAndroidHttpClientFactory(new OkHttpClientFactory() {
+                @Override
+                public OkHttpClient createOkHttpClient() {
+                    OkHttpClient client = new OkHttpClient();
+                    client.setReadTimeout(20, TimeUnit.SECONDS);
+                    client.setWriteTimeout(20, TimeUnit.SECONDS);
+                    return client;
+                }
+            });
+
+
         }
         catch (MalformedURLException e)
         {
@@ -143,6 +157,7 @@ public class ConversationActivity extends AppCompatActivity
                 }
             }
         });
+
     }
 
     @Override
@@ -169,11 +184,16 @@ public class ConversationActivity extends AppCompatActivity
 
     public void addConversation(View view)
     {
-        final Conversation addConversation = new Conversation(mConversationName.getText().toString(),mConversationCode.getText().toString() );
-
-        //Inserting into Azure SQL Happens here, and only add to the adapter once it is inserted
-        mConvoTable.insert(addConversation);
-        mAdapter.add(addConversation);
+    try {
+        final Conversation addConversation = new Conversation();
+        String handle = mConversationCode.getText().toString();
+        String nick = mConversationName.getText().toString();
+        addToTable(addConversation,handle,nick);
+        }
+        catch(Exception e)
+        {
+            e.printStackTrace();
+        }
     }
 
     private boolean validInput(android.text.Editable field)
@@ -182,14 +202,59 @@ public class ConversationActivity extends AppCompatActivity
         return TextUtils.isEmpty(field);
     }
 
-    /**
-     * Creates a dialog and shows it
-     *
-     * @param exception
-     *            The exception to show in the dialog
-     * @param title
-     *            The dialog title
-     */
+    //checks if conversation already exists
+    private void addToTable(final Conversation addConversation, final String handle, final String nick)
+    {
+        AsyncTask<Void, Void, Void> task = new AsyncTask<Void, Void, Void>(){
+            @Override
+            protected Void doInBackground(Void... params) {
+
+                try {
+                    final List<Conversation> results = existedConversation(handle);
+                    if(results.size()> 0) {
+                        //System.out.println("Conversation exists, updating table");
+                        final Conversation c = results.get(0);
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                mAdapter.clear();
+                                c.mNicknameB = nick;
+                                String temp = c.mHandleB;
+                                c.mHandleB = c.mHandleA;
+                                c.mHandleA = temp;
+                                mConvoTable.update(c);
+                                mAdapter.add(c);
+                            }
+                        });
+                    }else
+                    {
+                        //System.out.println("Adding new conversation to table");
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                addConversation.mHandleB = handle;
+                                addConversation.mHandleA = username;
+                                addConversation.mNicknameA = nick;
+                                mConvoTable.insert(addConversation);
+                                mAdapter.add(addConversation);
+                            }
+                        });
+
+                    }
+                } catch (final Exception e){
+                    createAndShowDialogFromTask(e, "Error");
+                }
+                return null;
+            }
+
+        };
+        runAsyncTask(task);
+    }
+
+    private List<Conversation> existedConversation(String h) throws ExecutionException, InterruptedException
+    {
+        return mConvoTable.where().field("handleB").eq(val(username)).and().field("handleA").eq(val(h)).execute().get();
+    }
     private void createAndShowDialog(Exception exception, String title) {
         Throwable ex = exception;
         if(exception.getCause() != null){
@@ -198,14 +263,7 @@ public class ConversationActivity extends AppCompatActivity
         createAndShowDialog(ex.getMessage(), title);
     }
 
-    /**
-     * Creates a dialog and shows it
-     *
-     * @param message
-     *            The dialog message
-     * @param title
-     *            The dialog title
-     */
+
     private void createAndShowDialog(final String message, final String title) {
         final AlertDialog.Builder builder = new AlertDialog.Builder(this);
 
@@ -214,6 +272,45 @@ public class ConversationActivity extends AppCompatActivity
         builder.create().show();
     }
 
+    private void createAndShowDialogFromTask(final Exception exception, String title) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                createAndShowDialog(exception, "Error");
+            }
+        });
+    }
+    private AsyncTask<Void, Void, Void> runAsyncTask(AsyncTask<Void, Void, Void> task) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
+            return task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+        } else {
+            return task.execute();
+        }
+    }
+
+    public void showAll(View view) {
+        new AsyncTask<Void, Void, Void>() {
+            @Override
+            protected Void doInBackground(Void... params) {
+                try {
+                    final MobileServiceList<Conversation> result = mConvoTable.execute().get();
+                    runOnUiThread(new Runnable() {
+
+                        @Override
+                        public void run() {
+                            mAdapter.clear();
+                            for (Conversation item : result) {
+                                mAdapter.add(item);
+                            }
+                        }
+                    });
+                } catch (Exception exception) {
+                    createAndShowDialog(exception, "Error");
+                }
+                return null;
+            }
+        }.execute();
+    }
 }
 
 

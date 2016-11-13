@@ -10,6 +10,8 @@ import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.TextView;
 
+import static com.microsoft.windowsazure.mobileservices.table.query.QueryOperations.val;
+
 /**
  * Created by Julian on 11/7/2016.
  */
@@ -45,7 +47,7 @@ public class ConversationAdapter extends ArrayAdapter<Conversation>
 
         row.setTag(bindConversation);
         final TextView convText = (TextView) row.findViewById(R.id.conversationName);
-        convText.setText(bindConversation.getNickname());
+        convText.setText(bindConversation.getHandle());
         convText.setEnabled(true);
 
         //Give each item an onClickListener to allow it to load Messaging Activities

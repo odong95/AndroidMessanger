@@ -30,7 +30,7 @@ public class Conversation
     }
 
     public String getHandle(){ return mHandleB; }
-    public String getNickname() { return mNicknameB; }
+    public String getNickname() { return mNicknameA; }
 
     public void setHandle(String n) { mHandleB=n;}
 

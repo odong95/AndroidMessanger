@@ -91,7 +91,7 @@ public class ConversationActivity extends AppCompatActivity
         //Gets String passed the login activity
         Intent intent = getIntent();
         mUsername= intent.getStringExtra("username");
-
+       // mUsername = "Julian";
 
         mAdapter = new ConversationAdapter(this, R.layout.row_conversation);
         ListView listViewConversation = (ListView) findViewById(R.id.listView_conversation);
@@ -127,7 +127,6 @@ public class ConversationActivity extends AppCompatActivity
             createAndShowDialog(e, "Error");
         }
 
-
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -158,6 +157,7 @@ public class ConversationActivity extends AppCompatActivity
                 }
             }
         });
+        refreshItemsFromTable();
 
     }
 
@@ -242,6 +242,8 @@ public class ConversationActivity extends AppCompatActivity
                         });
 
                     }
+
+
                 } catch (final Exception e){
                     createAndShowDialogFromTask(e, "Error");
                 }
@@ -289,28 +291,39 @@ public class ConversationActivity extends AppCompatActivity
         }
     }
 
-    public void showAll(View view) {
-        new AsyncTask<Void, Void, Void>() {
+    public void refreshItemsFromTable() {
+        AsyncTask<Void, Void, Void> task = new AsyncTask<Void, Void, Void>(){
             @Override
             protected Void doInBackground(Void... params) {
-                try {
-                    final MobileServiceList<Conversation> result = mConvoTable.execute().get();
-                    runOnUiThread(new Runnable() {
 
+                try {
+                    final List<Conversation> results = refreshItemsFromConvoTable();
+
+
+                    runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
                             mAdapter.clear();
-                            for (Conversation item : result) {
+
+                            for (Conversation item : results) {
                                 mAdapter.add(item);
                             }
                         }
                     });
-                } catch (Exception exception) {
-                    createAndShowDialog(exception, "Error");
+                } catch (final Exception e){
+                    createAndShowDialogFromTask(e, "Error");
                 }
+
                 return null;
             }
-        }.execute();
+        };
+
+        runAsyncTask(task);
+    }
+
+    private List<Conversation> refreshItemsFromConvoTable() throws ExecutionException, InterruptedException {
+        return mConvoTable.where().field("handleA").
+                eq(val(mUsername)).or().field("handleB").eq(val(mUsername)).execute().get();
     }
 
     public void startMessaging(View view, String myNewNick, String toHandle)

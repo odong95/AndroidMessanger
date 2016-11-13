@@ -58,7 +58,7 @@ public class ConversationAdapter extends ArrayAdapter<Conversation>
             public void onClick(View view)
                 {
                     //Start the messaging from the parent conversation activity
-                    ((ConversationActivity)view.getContext()).startMessaging(view,bindConversation.getNickname(),bindConversation.getHandle());
+                    ((ConversationActivity)mContext).startMessaging(view, bindConversation.getNickname(), bindConversation.getHandle());
                 }
         };
         convText.setOnClickListener(clickListener);

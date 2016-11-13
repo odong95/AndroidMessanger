@@ -39,7 +39,7 @@ public class LoginActivity extends AppCompatActivity {
         final Button Register = (Button) findViewById(R.id.bRegister);
         final Button bLogin = (Button) findViewById(R.id.bLogin);
         try {
-            mClient = new MobileServiceClient("http://waspsmessenger.azurewebsites.net", this);
+            mClient = new MobileServiceClient("https://waspsmessenger.azurewebsites.net", this);
             userTable = mClient.getTable(User.class);
             mClient.setAndroidHttpClientFactory(new OkHttpClientFactory() {
                 @Override

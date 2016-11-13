@@ -70,12 +70,12 @@ import java.net.MalformedURLException;
 
 public class ConversationActivity extends AppCompatActivity
 {
-    public final static String START_MESSAGING = "com.waspteam.waspmessenger.MESSAGING";
-
     private EditText mConversationName, mConversationCode;
     private MobileServiceClient mClient;
     private MobileServiceTable<Conversation> mConvoTable;
-    String username = "";
+    private String mUsername;
+    //DUMMY HANDLE CODE
+    private String mHandle = "XXX";
     ConversationAdapter mAdapter;
 
     @Override
@@ -90,7 +90,8 @@ public class ConversationActivity extends AppCompatActivity
 
         //Gets String passed the login activity
         Intent intent = getIntent();
-        username = intent.getStringExtra("username");
+        mUsername= intent.getStringExtra("username");
+
 
         mAdapter = new ConversationAdapter(this, R.layout.row_conversation);
         ListView listViewConversation = (ListView) findViewById(R.id.listView_conversation);
@@ -233,7 +234,7 @@ public class ConversationActivity extends AppCompatActivity
                             @Override
                             public void run() {
                                 addConversation.mHandleB = handle;
-                                addConversation.mHandleA = username;
+                                addConversation.mHandleA = mUsername;
                                 addConversation.mNicknameA = nick;
                                 mConvoTable.insert(addConversation);
                                 mAdapter.add(addConversation);
@@ -253,7 +254,7 @@ public class ConversationActivity extends AppCompatActivity
 
     private List<Conversation> existedConversation(String h) throws ExecutionException, InterruptedException
     {
-        return mConvoTable.where().field("handleB").eq(val(username)).and().field("handleA").eq(val(h)).execute().get();
+        return mConvoTable.where().field("handleB").eq(val(mUsername)).and().field("handleA").eq(val(h)).execute().get();
     }
     private void createAndShowDialog(Exception exception, String title) {
         Throwable ex = exception;
@@ -311,6 +312,22 @@ public class ConversationActivity extends AppCompatActivity
             }
         }.execute();
     }
+
+    public void startMessaging(View view, String myNewNick, String toHandle)
+    {
+        Intent intent = new Intent(view.getContext(), MessagingActivity.class);
+        Bundle bundle = new Bundle();
+        bundle.putString("EXTRA_MYUSERNAME",mUsername);
+        bundle.putString("EXTRA_MYHANDLE",mHandle);
+        bundle.putString("EXTRA_MYNICKNAME",myNewNick);
+        bundle.putString("EXTRA_TOHANDLE",toHandle);
+        //TONICK must be established by a call to the database
+        //It won't even exist until the other party accepts, so this logic will require adjusting
+        bundle.putString("EXTRA_TONICK",toHandle);
+        intent.putExtras(bundle);
+        view.getContext().startActivity(intent);
+    }
+
 }
 
 

@@ -10,7 +10,11 @@ import android.widget.ListView;
 
 public class MessagingActivity extends AppCompatActivity {
 
-    String mSendTo;
+    private String mUsername;
+    private String mToNick;
+    private String mToHandle;
+    private String mMyNick;
+    private String mMyHandle;
 
     MessageAdapter mAdapter;
 
@@ -31,8 +35,13 @@ public class MessagingActivity extends AppCompatActivity {
         listViewConversation.setAdapter(mAdapter);
 
         Intent intent = getIntent();
-        mSendTo = intent.getStringExtra(ConversationActivity.START_MESSAGING);
-        setTitle(mSendTo);
+        Bundle bundle = intent.getExtras();
+        mUsername=bundle.getString("EXTRA_MYUSERNAME");
+        mMyHandle=bundle.getString("EXTRA_MYHANDLE");
+        mMyNick=bundle.getString("EXTRA_MYNICKNAME");
+        mToHandle=bundle.getString("EXTRA_TOHANDLE");
+        mToNick=bundle.getString("EXTRA_TONICK");
+        setTitle(mToNick);
     }
 
     public void sendMessage(View view)

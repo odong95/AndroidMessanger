@@ -1,5 +1,8 @@
 package com.waspteam.waspmessenger;
 
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+
 /**
  * Created by Julian on 11/8/2016.
  */
@@ -10,17 +13,22 @@ public class Message
     private String mFrom;
     private String mText;
     private String mTimestamp;
-
+    private String mTo;
+    @com.google.gson.annotations.SerializedName("id")
+    private String id;
     public Message()
     {
 
     }
 
-    public Message(String from, String text, String timestamp)
+    public Message(String from, String to, String text)
     {
         mFrom=from;
+        mTo=to;
         mText=text;
-        mTimestamp=timestamp;
+        Calendar cal = Calendar.getInstance();
+        SimpleDateFormat sdf = new SimpleDateFormat("MMM d, HH:mm a");
+        mTimestamp=sdf.format(cal.getTime());;
     }
 
     @Override

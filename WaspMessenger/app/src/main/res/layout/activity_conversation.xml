@@ -48,10 +48,10 @@
             android:inputType="textPersonName"
             android:paddingBottom="16dp"
             android:paddingTop="16dp"
-            android:text="Nickname"
             android:ems="10"
             android:id="@+id/newConversationNickname"
-            android:layout_weight="1" />
+            android:layout_weight="1"
+            android:hint="Nickname" />
 
         <EditText
             android:layout_width="match_parent"
@@ -59,10 +59,10 @@
             android:inputType="textPersonName"
             android:paddingBottom="16dp"
             android:paddingTop="16dp"
-            android:text="Conversation Code"
             android:ems="10"
             android:id="@+id/newConversationHandleCode"
-            android:layout_weight="1" />
+            android:layout_weight="1"
+            android:hint="Conversation Code" />
     </LinearLayout>
 
 </android.support.design.widget.CoordinatorLayout>

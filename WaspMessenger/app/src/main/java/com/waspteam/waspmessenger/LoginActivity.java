@@ -3,16 +3,22 @@ package com.waspteam.waspmessenger;
 import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.support.design.widget.Snackbar;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.microsoft.windowsazure.mobileservices.MobileServiceClient;
 import com.microsoft.windowsazure.mobileservices.http.OkHttpClientFactory;
 import com.microsoft.windowsazure.mobileservices.table.MobileServiceTable;
 import com.squareup.okhttp.OkHttpClient;
+
+import org.json.JSONObject;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -26,9 +32,19 @@ import java.util.concurrent.TimeUnit;
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
 
-public class LoginActivity extends AppCompatActivity {
+import java.util.concurrent.Semaphore;
+
+public class LoginActivity extends AppCompatActivity
+{
+    Semaphore loginSem = new Semaphore(0);
+
     MobileServiceClient mClient = null;
+    MobileServiceClient mClientAPI = null;
     MobileServiceTable<User> userTable = null;
+
+    boolean loginResult;
+    byte[] userSalt;
+
     byte[] pepper ={8,-52,-61,86,-55,-75,-94,14,99,-36,100,118,74,20,101,9,49,118,-62,27,121,-14,-97,-24,45,-113,107,126,94,-48,-81,36,-55,-92,-34,-11};
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -38,8 +54,14 @@ public class LoginActivity extends AppCompatActivity {
         final EditText etPassword = (EditText) findViewById(R.id.etPassword);
         final Button Register = (Button) findViewById(R.id.bRegister);
         final Button bLogin = (Button) findViewById(R.id.bLogin);
-        try {
+
+        loginResult=false;
+        userSalt=null;
+
+        try
+        {
             mClient = new MobileServiceClient("https://waspsmessenger.azurewebsites.net", this);
+            mClientAPI = new MobileServiceClient("https://waspsmessenger.azurewebsites.net/api", this);
             userTable = mClient.getTable(User.class);
             mClient.setAndroidHttpClientFactory(new OkHttpClientFactory() {
                 @Override
@@ -178,25 +200,138 @@ public class LoginActivity extends AppCompatActivity {
      * @return true on success </br> false on failure
      */
 
-    public boolean login(String username, String password) {
-        try{
-            List<User> result = userTable.where()
-                    .field("username").eq(username)
-                    .execute().get();
-            User user = result.get(0);
-            if(checkPassword(password, result.get(0).password, result.get(0).salt.getBytes("ISO-8859-1")))
+    public boolean login(String username, String password)
+    {
+        loginResult = false;
+
+        UserCredentials credentials = new UserCredentials();
+        credentials.username = username;
+        credentials.password = "";
+
+        //Fetch JUST the salt value for this username (without seeing the table)
+        try
+        {
+            ListenableFuture<ReturnSalt> saltResult = mClientAPI.invokeApi("getSalt", credentials, ReturnSalt.class);
+
+            Futures.addCallback(saltResult, new FutureCallback<ReturnSalt>()
             {
-                return true;
-            }
+                @Override
+                public void onFailure(Throwable e)
+                {
+                    //No valid salt found
+                    try
+                    {
+                        loginSem.release();
+                    }
+                    catch(Exception ex)
+                    {
+                        ex.printStackTrace();
+                    }
+                }
+
+                @Override
+                public void onSuccess(ReturnSalt result)
+                {
+
+                    try
+                    {
+                        userSalt = result.salt.getBytes("ISO-8859-1");
+                        loginSem.release();
+                    }
+                    catch(Exception e)
+                    {
+                        e.printStackTrace();
+                    }
+
+                    //attemptingLogin=false;
+                }
+
+            });
 
 
-            return false;
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+        }
+
+        try
+        {
+            loginSem.acquire();
         }
         catch(Exception e)
         {
             e.printStackTrace();
         }
-        return false;
+
+
+        //Salt the password to send to the server
+        try
+        {
+            credentials.password = new String (hashPassword(password,userSalt), "ISO-8859-1");
+        }
+        catch(Exception e)
+        {
+            e.printStackTrace();
+        }
+
+        //Check login and then return results
+
+        try
+        {
+            ListenableFuture<LoginAttempt> saltResult = mClientAPI.invokeApi("login", credentials, LoginAttempt.class);
+
+            Futures.addCallback(saltResult, new FutureCallback<LoginAttempt>()
+            {
+                @Override
+                public void onFailure(Throwable e)
+                {
+                    //Invalid login credentials
+                    try
+                    {
+                        loginSem.release();
+                    }
+                    catch(Exception ex)
+                    {
+                        ex.printStackTrace();
+                    }
+                }
+
+                @Override
+                public void onSuccess(LoginAttempt result)
+                {
+                    Snackbar.make(findViewById(R.id.bLogin), "Successful return of password!", Snackbar.LENGTH_LONG)
+                            .setAction("Action", null).show();
+                    loginResult = true;
+                    try
+                    {
+                        loginSem.release();
+                    }
+                    catch(Exception e)
+                    {
+                        e.printStackTrace();
+                    }
+                }
+
+            });
+
+
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+        }
+
+        try
+        {
+            loginSem.acquire();
+        }
+        catch(Exception e)
+        {
+            e.printStackTrace();
+        }
+
+        return loginResult;
     }
 
     /**

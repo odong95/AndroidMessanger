@@ -196,6 +196,11 @@ public class ConversationActivity extends AppCompatActivity
                     })
                     .setActionTextColor(Color.WHITE).setDuration(100000).show();
         }
+        else if(id == R.id.logout)
+        {
+            Intent intent = new Intent(this, LoginActivity.class);
+            this.startActivity(intent);
+        }
 
         return super.onOptionsItemSelected(item);
     }

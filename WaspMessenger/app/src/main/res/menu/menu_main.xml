@@ -7,9 +7,12 @@
         android:checkable="false"
         android:id="@+id/view_handle" />
     <item
-        android:orderInCategory="101"
+        android:orderInCategory="102"
         android:checkable="false"
         android:id="@+id/generate_handle"
         app:showAsAction="never"
         android:title="Generate New Handle" />
+    <item android:title="Logout"
+        android:orderInCategory="103"
+        android:id="@+id/logout" />
 </menu>

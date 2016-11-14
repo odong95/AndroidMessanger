@@ -2,9 +2,14 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     tools:context="com.waspteam.waspmessenger.ConversationActivity">
-    <item
-        android:id="@+id/action_settings"
+    <item android:title="View Current Handle"
         android:orderInCategory="100"
-        android:title="@string/action_settings"
-        app:showAsAction="never" />
+        android:checkable="false"
+        android:id="@+id/view_handle" />
+    <item
+        android:orderInCategory="101"
+        android:checkable="false"
+        android:id="@+id/generate_handle"
+        app:showAsAction="never"
+        android:title="Generate New Handle" />
 </menu>

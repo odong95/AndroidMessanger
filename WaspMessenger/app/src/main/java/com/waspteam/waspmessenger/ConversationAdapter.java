@@ -47,8 +47,16 @@ public class ConversationAdapter extends ArrayAdapter<Conversation>
 
         row.setTag(bindConversation);
         final TextView convText = (TextView) row.findViewById(R.id.conversationName);
-        convText.setText(bindConversation.getHandle());
-        convText.setEnabled(true);
+        if(bindConversation.isExist)
+        {
+            convText.setText(bindConversation.getNicknameB());
+            convText.setEnabled(true);
+        }
+        else
+        {
+            convText.setText(bindConversation.getNicknameA());
+            convText.setEnabled(true);
+        }
 
         //Give each item an onClickListener to allow it to load Messaging Activities
 
@@ -58,7 +66,7 @@ public class ConversationAdapter extends ArrayAdapter<Conversation>
             public void onClick(View view)
                 {
                     //Start the messaging from the parent conversation activity
-                    ((ConversationActivity)mContext).startMessaging(view, bindConversation.getNickname(), bindConversation.getHandle());
+                    ((ConversationActivity)mContext).startMessaging(view, bindConversation);
                 }
         };
         convText.setOnClickListener(clickListener);

@@ -18,6 +18,7 @@ public class Conversation
     @com.google.gson.annotations.SerializedName("nicknameB")
     public String mNicknameB;
 
+    public boolean isExist = false;
     public Conversation()
     {
 
@@ -30,8 +31,8 @@ public class Conversation
     }
 
     public String getHandle(){ return mHandleB; }
-    public String getNickname() { return mNicknameA; }
-
+    public String getNicknameA() { return mNicknameA; }
+    public String getNicknameB() { return mNicknameB; }
     public void setHandle(String n) { mHandleB=n;}
 
     public void setNick(String n) { mNicknameA=n;}

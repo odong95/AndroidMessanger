@@ -69,18 +69,20 @@ public class MessagingActivity extends AppCompatActivity {
         catch(Exception e){}
         Intent intent = getIntent();
         Bundle bundle = intent.getExtras();
-        /*
+
         mUsername=bundle.getString("EXTRA_MYUSERNAME");
         mMyHandle=bundle.getString("EXTRA_MYHANDLE");
         mMyNick=bundle.getString("EXTRA_MYNICKNAME");
         mToHandle=bundle.getString("EXTRA_TOHANDLE");
         mToNick=bundle.getString("EXTRA_TONICK");
-        */
+
+        /*
         mUsername="testUser";
         mMyHandle="test";
         mMyNick="Timmy";
         mToHandle="Tom";
         mToNick="Nick";
+        */
         setTitle(mToNick);
         LoadItemsFromTable();
         send.setOnClickListener(new View.OnClickListener() {

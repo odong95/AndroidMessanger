@@ -27,7 +27,7 @@ public class Message
         mTo=to;
         mText=text;
         Calendar cal = Calendar.getInstance();
-        SimpleDateFormat sdf = new SimpleDateFormat("MMM d, HH:mm a");
+        SimpleDateFormat sdf = new SimpleDateFormat("MMM d, h:mm a");
         mTimestamp=sdf.format(cal.getTime());;
     }
 

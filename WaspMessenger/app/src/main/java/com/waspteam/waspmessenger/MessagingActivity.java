@@ -4,6 +4,8 @@ import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
+import android.support.design.widget.FloatingActionButton;
+import android.support.design.widget.Snackbar;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
@@ -11,7 +13,10 @@ import android.view.View;
 import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.ListView;
+import android.content.DialogInterface;
+import android.view.LayoutInflater;
 
 import com.microsoft.windowsazure.mobileservices.MobileServiceClient;
 import com.microsoft.windowsazure.mobileservices.http.OkHttpClientFactory;
@@ -38,6 +43,7 @@ public class MessagingActivity extends AppCompatActivity {
     EditText mMessageEdit;
     MobileServiceClient mClient = null;
     MobileServiceTable<Message> messageTable = null;
+    MobileServiceTable<Conversation> mConvoTable;
     @Override
     protected void onCreate(Bundle savedInstanceState)
     {
@@ -48,6 +54,7 @@ public class MessagingActivity extends AppCompatActivity {
         //getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN);
         mMessageEdit = (EditText) findViewById(R.id.messageEdit);
         final Button send = (Button) findViewById(R.id.sendButton);
+        FloatingActionButton cNick = (FloatingActionButton) findViewById(R.id.bChangeNick);
         mAdapter = new MessageAdapter(this, R.layout.row_messaging);
         ListView listViewConversation = (ListView) findViewById(R.id.listView_messaging);
         listViewConversation.setAdapter(mAdapter);
@@ -56,6 +63,7 @@ public class MessagingActivity extends AppCompatActivity {
         try {
             mClient = new MobileServiceClient("https://waspsmessenger.azurewebsites.net", this);
             messageTable = mClient.getTable(Message.class);
+            mConvoTable = mClient.getTable(Conversation.class);
             mClient.setAndroidHttpClientFactory(new OkHttpClientFactory() {
                 @Override
                 public OkHttpClient createOkHttpClient() {
@@ -91,6 +99,33 @@ public class MessagingActivity extends AppCompatActivity {
                 sendMessage(v);
             }
         });
+
+        cNick.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view)
+            {
+                LayoutInflater layoutInflater = LayoutInflater.from(MessagingActivity.this);
+                final View promptView = layoutInflater.inflate(R.layout.input_dialog, null);
+                AlertDialog.Builder builder = new AlertDialog.Builder(MessagingActivity.this);
+                builder.setView(promptView);
+
+
+                builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int id) {
+                                EditText text = (EditText) promptView.findViewById(R.id.edittext);
+                                updateNickname(text.getText().toString());
+                                dialog.dismiss();
+                            }
+                        })
+                        .setNegativeButton("Cancel",
+                                new DialogInterface.OnClickListener() {
+                                    public void onClick(DialogInterface dialog, int id) {
+                                        dialog.cancel();
+                                    }
+                                })
+                        .create().show();
+            }
+        });
     }
 
     public void sendMessage(View view)
@@ -103,10 +138,11 @@ public class MessagingActivity extends AppCompatActivity {
         //NOTE: CURRENTLY, THE GENERATED MESSAGES AREN'T USING THE BUBBLE GRAPHIC THEY SHOULD BE,
         //THIS PROBABLY NEEDS TO BE MANUALLY SET IN THE ADAPTER CLASS, AS WELL AS THE PADDING.
 
-        final Message newMessage = new Message(mMyNick,mToNick,mMessageEdit.getText().toString());
+        final Message newMessage = new Message(mMyHandle,mToHandle,mMessageEdit.getText().toString(),mMyNick);
 
 
         //Yes this order looks weird, but it was the simplest way to ensure that
+        messageTable.insert(newMessage);
         refreshItemsFromTable(newMessage);
         mMessageEdit.setText("");
 
@@ -124,12 +160,10 @@ public class MessagingActivity extends AppCompatActivity {
                         @Override
                         public void run() {
                             mAdapter.clear();
-
                             for (Message item : results) {
                                 mAdapter.add(item);
                             }
-                            mAdapter.add(message);
-                            messageTable.insert(message);
+
                         }
                     });
                 } catch (final Exception e){
@@ -173,8 +207,59 @@ public class MessagingActivity extends AppCompatActivity {
     }
     private List<Message> refreshItemsFromMessageoTable() throws ExecutionException, InterruptedException {
         return messageTable.where().field("mFrom").
-                eq(val(mMyNick)).or().field("mTo").eq(val(mMyNick)).execute().get();
+                eq(val(mMyHandle)).and().field("mTo").eq(val(mToHandle)).or().field("mTo").eq(val(mMyHandle)).and().field("mFrom").eq(val(mToHandle)).execute().get();
     }
+
+    public void updateNickname(final String nick)
+    {
+        AsyncTask<Void, Void, Void> task = new AsyncTask<Void, Void, Void>(){
+            @Override
+            protected Void doInBackground(Void... params) {
+
+                try {
+                    final List<Conversation> result = findConvoFromTable();
+                    final List<Conversation> resultB = findConvoFromTable2();
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+
+                            if(result.size() > 0)//update nickname B
+                            {
+                                final Conversation c = result.get(0);
+                                c.mNicknameB = nick;
+                                mConvoTable.update(c);
+                                mMyNick = nick;
+                            }
+                            else
+                            {
+                                final Conversation c = resultB.get(0);
+                                c.mNicknameA = nick;
+                                mConvoTable.update(c);
+                                mMyNick = nick;
+                            }
+
+                        }
+                    });
+                } catch (final Exception e){
+                    createAndShowDialogFromTask(e, "Error");
+                }
+
+                return null;
+            }
+        };
+
+        runAsyncTask(task);
+    }
+
+    private List<Conversation> findConvoFromTable() throws ExecutionException, InterruptedException {
+        return mConvoTable.where().field("handleA").eq(mToHandle).and().field("nicknameA").eq(val(mToNick))
+                .or().field("handleB").eq(mToHandle).and().field("nicknameA").eq(val(mToNick)).execute().get();
+    }
+    private List<Conversation> findConvoFromTable2() throws ExecutionException, InterruptedException {
+        return mConvoTable.where().field("handleA").eq(mToHandle).and().field("nicknameB").eq(val(mToNick))
+                .or().field("handleB").eq(mToHandle).and().field("nicknameB").eq(val(mToNick)).execute().get();
+    }
+
     private void createAndShowDialog(Exception exception, String title) {
         Throwable ex = exception;
         if(exception.getCause() != null){
@@ -206,5 +291,12 @@ public class MessagingActivity extends AppCompatActivity {
         } else {
             return task.execute();
         }
+    }
+
+    @Override
+    protected void onRestart() {
+        super.onRestart();
+
+        mAdapter.notifyDataSetChanged();
     }
 }

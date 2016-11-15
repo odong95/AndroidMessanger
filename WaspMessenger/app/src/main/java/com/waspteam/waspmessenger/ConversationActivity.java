@@ -77,9 +77,10 @@ public class ConversationActivity extends AppCompatActivity
     private MobileServiceClient mClient;
     private MobileServiceTable<Conversation> mConvoTable;
     private MobileServiceTable<User> mUserTable;
+    private MobileServiceTable<Message> mMessageTable;
     private String mUsername;
     //DUMMY HANDLE CODE
-    private String mHandle = "XXX";
+    private  String mHandle = "XXX";
     ConversationAdapter mAdapter;
 
     static final String AB = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
@@ -112,6 +113,8 @@ public class ConversationActivity extends AppCompatActivity
                     this);
             mConvoTable = mClient.getTable(Conversation.class);
             mUserTable = mClient.getTable(User.class);
+            mMessageTable = mClient.getTable(Message.class);
+
             mClient.setAndroidHttpClientFactory(new OkHttpClientFactory() {
                 @Override
                 public OkHttpClient createOkHttpClient() {
@@ -187,7 +190,8 @@ public class ConversationActivity extends AppCompatActivity
         }
         else if(id == R.id.view_handle)
         {
-            final Snackbar snackbar = Snackbar.make(findViewById(android.R.id.content), "Handle Code: " + mHandle, Snackbar.LENGTH_LONG);
+            String h = mHandle;
+            final Snackbar snackbar = Snackbar.make(findViewById(android.R.id.content), "Handle Code: " + h, Snackbar.LENGTH_LONG);
                     snackbar.setAction("Close", new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
@@ -216,14 +220,18 @@ public class ConversationActivity extends AppCompatActivity
                     final User u = user.get(0);
                     final List<Conversation> convosA = userConversations(mHandle);
                     final List<Conversation> convosB = userConversationsB(mHandle);
-                    System.out.println("size " + convosA.size());
+
+                    final List<Message> msgTo = findMsgFromTable();
+                    final List<Message> msgFrom = findMsgFromTable2();
+
                     runOnUiThread(new Runnable(){
                         @Override
                         public void run() {
 
                             AlertDialog.Builder builder = new AlertDialog.Builder(ConversationActivity.this);
-                            String newHandle = generateHandle(10);
+                            final String newHandle = generateHandle(10);
                             u.handle = newHandle;
+                            mHandle = newHandle;
                             mUserTable.update(u);
 
                             for (Conversation item : convosA) {
@@ -234,10 +242,21 @@ public class ConversationActivity extends AppCompatActivity
                                 item2.mHandleB = newHandle;
                                 mConvoTable.update(item2);
                             }
+
+                            for (Message item3 : msgTo) {
+                                item3.setTo(newHandle);
+                                mMessageTable.update(item3);
+                            }
+
+                            for (Message item4 : msgFrom) {
+                                item4.setFrom(newHandle);
+                                mMessageTable.update(item4);
+                            }
                             final Snackbar snackbar = Snackbar.make(findViewById(android.R.id.content), "New Handle Code: " + newHandle, Snackbar.LENGTH_LONG);
                             snackbar.setAction("Close", new View.OnClickListener() {
                                 @Override
                                 public void onClick(View v) {
+
                                     snackbar.dismiss();
                                 }
                             })
@@ -278,7 +297,8 @@ public class ConversationActivity extends AppCompatActivity
                 try {
                     final List<User> results = checkUser(handle);
 
-                    if (results.size()>0) {
+
+                    if (results.size()>0 && !isUser(handle)) {
                         runOnUiThread(new Runnable(){
                             @Override
                             public void run() {
@@ -287,7 +307,7 @@ public class ConversationActivity extends AppCompatActivity
                                 addConversation.mHandleB = handle;
                                 addConversation.mHandleA = mHandle;
                                 addConversation.mNicknameA = nick;
-                                addConversation.mNicknameB = u.username;
+                                addConversation.mNicknameB = u.handle;
                                 mConvoTable.insert(addConversation);
                                 mAdapter.add(addConversation);
                                 refreshItemsFromTable();
@@ -367,6 +387,11 @@ public class ConversationActivity extends AppCompatActivity
     {
         return mUserTable.where().field("handle").eq(val(h)).execute().get();
     }
+    private boolean isUser(String h)
+    {
+
+        return mHandle.equals(h);
+    }
 
     private List<Conversation> userConversations(String h) throws ExecutionException, InterruptedException
     {
@@ -376,6 +401,13 @@ public class ConversationActivity extends AppCompatActivity
     private List<Conversation> userConversationsB(String h) throws ExecutionException, InterruptedException
     {
         return mConvoTable.where().field("handleB").eq(val(h)).execute().get();
+    }
+
+    private List<Message> findMsgFromTable() throws ExecutionException, InterruptedException {
+        return mMessageTable.where().field("mTo").eq(mHandle).execute().get();
+    }
+    private List<Message> findMsgFromTable2() throws ExecutionException, InterruptedException {
+        return mMessageTable.where().field("mFrom").eq(mHandle).execute().get();
     }
 
     private void createAndShowDialog(Exception exception, String title) {
@@ -429,12 +461,14 @@ public class ConversationActivity extends AppCompatActivity
             bundle.putString("EXTRA_MYNICKNAME", c.getNicknameA());
             bundle.putString("EXTRA_TOHANDLE",c.mHandleB);
             bundle.putString("EXTRA_TONICK",c.getNicknameB());
+            System.out.println("Beginning new activity, NICKNAME IS: " +c.getNicknameA());
         }
         else
         {
             bundle.putString("EXTRA_MYNICKNAME", c.getNicknameB());
             bundle.putString("EXTRA_TOHANDLE",c.mHandleA);
             bundle.putString("EXTRA_TONICK",c.getNicknameA());
+            System.out.println("Beginning new activity, NICKNAME IS: " +c.getNicknameB());
         }
         //TONICK must be established by a call to the database
         //It won't even exist until the other party accepts, so this logic will require adjusting
@@ -450,6 +484,13 @@ public class ConversationActivity extends AppCompatActivity
         for( int i = 0; i < n-1; i++ )
             sb.append( AB.charAt( rnd.nextInt(AB.length()) ) );
         return sb.toString();
+    }
+
+    @Override
+    protected void onRestart() {
+        super.onRestart();
+
+        refreshItemsFromTable();
     }
 }
 

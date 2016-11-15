@@ -14,6 +14,7 @@ public class Message
     private String mText;
     private String mTimestamp;
     private String mTo;
+    private String nick;
     @com.google.gson.annotations.SerializedName("id")
     private String id;
     public Message()
@@ -21,11 +22,12 @@ public class Message
 
     }
 
-    public Message(String from, String to, String text)
+    public Message(String from, String to, String text, String nick)
     {
         mFrom=from;
         mTo=to;
         mText=text;
+        this.nick = nick;
         Calendar cal = Calendar.getInstance();
         SimpleDateFormat sdf = new SimpleDateFormat("MMM d, h:mm a");
         mTimestamp=sdf.format(cal.getTime());;
@@ -46,6 +48,7 @@ public class Message
     {
         mFrom=from;
     }
+    public void setTo(String to){mTo = to;}
 
     public void setTime(String time)
     {
@@ -59,7 +62,7 @@ public class Message
 
     public String getFrom()
     {
-        return mFrom;
+        return nick;
     }
 
     public String getTime()

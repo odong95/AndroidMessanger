@@ -44,9 +44,9 @@ public class MessagingActivity extends AppCompatActivity {
     MobileServiceClient mClient = null;
     MobileServiceTable<Message> messageTable = null;
     MobileServiceTable<Conversation> mConvoTable;
+
     @Override
-    protected void onCreate(Bundle savedInstanceState)
-    {
+    protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_messaging);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
@@ -73,16 +73,16 @@ public class MessagingActivity extends AppCompatActivity {
                     return client;
                 }
             });
+        } catch (Exception e) {
         }
-        catch(Exception e){}
         Intent intent = getIntent();
         Bundle bundle = intent.getExtras();
 
-        mUsername=bundle.getString("EXTRA_MYUSERNAME");
-        mMyHandle=bundle.getString("EXTRA_MYHANDLE");
-        mMyNick=bundle.getString("EXTRA_MYNICKNAME");
-        mToHandle=bundle.getString("EXTRA_TOHANDLE");
-        mToNick=bundle.getString("EXTRA_TONICK");
+        mUsername = bundle.getString("EXTRA_MYUSERNAME");
+        mMyHandle = bundle.getString("EXTRA_MYHANDLE");
+        mMyNick = bundle.getString("EXTRA_MYNICKNAME");
+        mToHandle = bundle.getString("EXTRA_TOHANDLE");
+        mToNick = bundle.getString("EXTRA_TONICK");
 
         /*
         mUsername="testUser";
@@ -102,8 +102,7 @@ public class MessagingActivity extends AppCompatActivity {
 
         cNick.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onClick(View view)
-            {
+            public void onClick(View view) {
                 LayoutInflater layoutInflater = LayoutInflater.from(MessagingActivity.this);
                 final View promptView = layoutInflater.inflate(R.layout.input_dialog, null);
                 AlertDialog.Builder builder = new AlertDialog.Builder(MessagingActivity.this);
@@ -111,12 +110,12 @@ public class MessagingActivity extends AppCompatActivity {
 
 
                 builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
-                            public void onClick(DialogInterface dialog, int id) {
-                                EditText text = (EditText) promptView.findViewById(R.id.edittext);
-                                updateNickname(text.getText().toString());
-                                dialog.dismiss();
-                            }
-                        })
+                    public void onClick(DialogInterface dialog, int id) {
+                        EditText text = (EditText) promptView.findViewById(R.id.edittext);
+                        updateNickname(text.getText().toString());
+                        dialog.dismiss();
+                    }
+                })
                         .setNegativeButton("Cancel",
                                 new DialogInterface.OnClickListener() {
                                     public void onClick(DialogInterface dialog, int id) {
@@ -128,8 +127,7 @@ public class MessagingActivity extends AppCompatActivity {
         });
     }
 
-    public void sendMessage(View view)
-    {
+    public void sendMessage(View view) {
         //ROOM FOR IMPROVEMENT HERE!
         //MESSAGE SHOULD DISPLAY "ME" WHEN BINDING MESSAGES FROM THE CURRENTLY-LOGGED USER
 
@@ -138,17 +136,16 @@ public class MessagingActivity extends AppCompatActivity {
         //NOTE: CURRENTLY, THE GENERATED MESSAGES AREN'T USING THE BUBBLE GRAPHIC THEY SHOULD BE,
         //THIS PROBABLY NEEDS TO BE MANUALLY SET IN THE ADAPTER CLASS, AS WELL AS THE PADDING.
 
-        final Message newMessage = new Message(mMyHandle,mToHandle,mMessageEdit.getText().toString(),mMyNick);
+        final Message newMessage = new Message(mMyHandle, mToHandle, mMessageEdit.getText().toString(), mMyNick);
 
-
-        //Yes this order looks weird, but it was the simplest way to ensure that
         messageTable.insert(newMessage);
-        refreshItemsFromTable(newMessage);
+        refreshItemsFromTable();
         mMessageEdit.setText("");
 
     }
-    public void refreshItemsFromTable(final Message message) {
-        AsyncTask<Void, Void, Void> task = new AsyncTask<Void, Void, Void>(){
+
+    public void refreshItemsFromTable() {
+        AsyncTask<Void, Void, Void> task = new AsyncTask<Void, Void, Void>() {
             @Override
             protected Void doInBackground(Void... params) {
 
@@ -166,7 +163,7 @@ public class MessagingActivity extends AppCompatActivity {
 
                         }
                     });
-                } catch (final Exception e){
+                } catch (final Exception e) {
                     createAndShowDialogFromTask(e, "Error");
                 }
 
@@ -176,14 +173,14 @@ public class MessagingActivity extends AppCompatActivity {
 
         runAsyncTask(task);
     }
+
     public void LoadItemsFromTable() {
-        AsyncTask<Void, Void, Void> task = new AsyncTask<Void, Void, Void>(){
+        AsyncTask<Void, Void, Void> task = new AsyncTask<Void, Void, Void>() {
             @Override
             protected Void doInBackground(Void... params) {
 
                 try {
                     final List<Message> results = refreshItemsFromMessageoTable();
-
 
                     runOnUiThread(new Runnable() {
                         @Override
@@ -195,7 +192,7 @@ public class MessagingActivity extends AppCompatActivity {
                             }
                         }
                     });
-                } catch (final Exception e){
+                } catch (final Exception e) {
                     createAndShowDialogFromTask(e, "Error");
                 }
 
@@ -205,14 +202,14 @@ public class MessagingActivity extends AppCompatActivity {
 
         runAsyncTask(task);
     }
+
     private List<Message> refreshItemsFromMessageoTable() throws ExecutionException, InterruptedException {
         return messageTable.where().field("mFrom").
                 eq(val(mMyHandle)).and().field("mTo").eq(val(mToHandle)).or().field("mTo").eq(val(mMyHandle)).and().field("mFrom").eq(val(mToHandle)).execute().get();
     }
 
-    public void updateNickname(final String nick)
-    {
-        AsyncTask<Void, Void, Void> task = new AsyncTask<Void, Void, Void>(){
+    public void updateNickname(final String nick) {
+        AsyncTask<Void, Void, Void> task = new AsyncTask<Void, Void, Void>() {
             @Override
             protected Void doInBackground(Void... params) {
 
@@ -223,15 +220,13 @@ public class MessagingActivity extends AppCompatActivity {
                         @Override
                         public void run() {
 
-                            if(result.size() > 0)//update nickname B
+                            if (result.size() > 0)//update nickname B
                             {
                                 final Conversation c = result.get(0);
                                 c.mNicknameB = nick;
                                 mConvoTable.update(c);
                                 mMyNick = nick;
-                            }
-                            else
-                            {
+                            } else {
                                 final Conversation c = resultB.get(0);
                                 c.mNicknameA = nick;
                                 mConvoTable.update(c);
@@ -240,7 +235,7 @@ public class MessagingActivity extends AppCompatActivity {
 
                         }
                     });
-                } catch (final Exception e){
+                } catch (final Exception e) {
                     createAndShowDialogFromTask(e, "Error");
                 }
 
@@ -255,6 +250,7 @@ public class MessagingActivity extends AppCompatActivity {
         return mConvoTable.where().field("handleA").eq(mToHandle).and().field("nicknameA").eq(val(mToNick))
                 .or().field("handleB").eq(mToHandle).and().field("nicknameA").eq(val(mToNick)).execute().get();
     }
+
     private List<Conversation> findConvoFromTable2() throws ExecutionException, InterruptedException {
         return mConvoTable.where().field("handleA").eq(mToHandle).and().field("nicknameB").eq(val(mToNick))
                 .or().field("handleB").eq(mToHandle).and().field("nicknameB").eq(val(mToNick)).execute().get();
@@ -262,7 +258,7 @@ public class MessagingActivity extends AppCompatActivity {
 
     private void createAndShowDialog(Exception exception, String title) {
         Throwable ex = exception;
-        if(exception.getCause() != null){
+        if (exception.getCause() != null) {
             ex = exception.getCause();
         }
         createAndShowDialog(ex.getMessage(), title);
@@ -285,6 +281,7 @@ public class MessagingActivity extends AppCompatActivity {
             }
         });
     }
+
     private AsyncTask<Void, Void, Void> runAsyncTask(AsyncTask<Void, Void, Void> task) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
             return task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
@@ -296,7 +293,6 @@ public class MessagingActivity extends AppCompatActivity {
     @Override
     protected void onRestart() {
         super.onRestart();
-
         mAdapter.notifyDataSetChanged();
     }
 }

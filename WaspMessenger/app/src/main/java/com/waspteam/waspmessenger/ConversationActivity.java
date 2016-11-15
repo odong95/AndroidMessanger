@@ -2,6 +2,7 @@ package com.waspteam.waspmessenger;
 
 
 import java.net.MalformedURLException;
+
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Intent;
@@ -21,6 +22,7 @@ import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.graphics.Color;
+
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -47,7 +49,9 @@ import com.microsoft.windowsazure.mobileservices.table.sync.localstore.MobileSer
 import com.microsoft.windowsazure.mobileservices.table.sync.localstore.SQLiteLocalStore;
 import com.microsoft.windowsazure.mobileservices.table.sync.synchandler.SimpleSyncHandler;
 import com.squareup.okhttp.OkHttpClient;
+
 import java.net.MalformedURLException;
+
 import static com.microsoft.windowsazure.mobileservices.table.query.QueryOperations.*;
 import static com.waspteam.waspmessenger.R.string.generate_handle;
 
@@ -65,26 +69,26 @@ import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.content.DialogInterface;
+
 import com.microsoft.windowsazure.mobileservices.MobileServiceClient;
 import com.microsoft.windowsazure.mobileservices.table.MobileServiceTable;
 
 import java.net.MalformedURLException;
 
 
-public class ConversationActivity extends AppCompatActivity
-{
+public class ConversationActivity extends AppCompatActivity {
     private EditText mConversationName, mConversationCode;
     private MobileServiceClient mClient;
     private MobileServiceTable<Conversation> mConvoTable;
     private MobileServiceTable<User> mUserTable;
     private MobileServiceTable<Message> mMessageTable;
     private String mUsername;
-    //DUMMY HANDLE CODE
-    private  String mHandle = "XXX";
+    private String mHandle = "";
     ConversationAdapter mAdapter;
 
     static final String AB = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
     static SecureRandom rnd = new SecureRandom();
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -98,15 +102,14 @@ public class ConversationActivity extends AppCompatActivity
 
         //Gets String passed the login activity
         Intent intent = getIntent();
-        mUsername= intent.getStringExtra("username");
+        mUsername = intent.getStringExtra("username");
 
         mAdapter = new ConversationAdapter(this, R.layout.row_conversation);
         ListView listViewConversation = (ListView) findViewById(R.id.listView_conversation);
         listViewConversation.setAdapter(mAdapter);
 
         //Startup Azure Connection
-        try
-        {
+        try {
             // Create the Mobile Service Client instance, using app URL
             mClient = new MobileServiceClient(
                     "https://waspsmessenger.azurewebsites.net",
@@ -127,36 +130,25 @@ public class ConversationActivity extends AppCompatActivity
 
             refreshItemsFromTable();
 
-        }
-        catch (MalformedURLException e)
-        {
+        } catch (MalformedURLException e) {
             createAndShowDialog(new Exception("There was an error creating the Mobile Service. Verify the URL"), "Error");
-        }
-        catch (Exception e)
-        {
+        } catch (Exception e) {
             createAndShowDialog(e, "Error");
         }
 
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onClick(View view)
-            {
+            public void onClick(View view) {
                 LinearLayout editLayout = (LinearLayout) findViewById(R.id.newConversationLayout);
 
-                if(editLayout.getVisibility()==LinearLayout.GONE)
-                {
+                if (editLayout.getVisibility() == LinearLayout.GONE) {
                     editLayout.setVisibility(LinearLayout.VISIBLE);
-                }
-                else
-                {
-                    if(validInput(mConversationName.getText()) || validInput(mConversationCode.getText()))
-                    {
+                } else {
+                    if (validInput(mConversationName.getText()) || validInput(mConversationCode.getText())) {
                         Snackbar.make(view, "Please enter a valid name and contact code.", Snackbar.LENGTH_LONG)
                                 .setAction("Action", null).show();
-                    }
-                    else
-                    {
+                    } else {
                         addConversation(view);
                         mConversationName.setText("");
                         mConversationCode.setText("");
@@ -187,21 +179,17 @@ public class ConversationActivity extends AppCompatActivity
         //noinspection SimplifiableIfStatement
         if (id == R.id.generate_handle) {
             handleGeneration();
-        }
-        else if(id == R.id.view_handle)
-        {
+        } else if (id == R.id.view_handle) {
             String h = mHandle;
             final Snackbar snackbar = Snackbar.make(findViewById(android.R.id.content), "Handle Code: " + h, Snackbar.LENGTH_LONG);
-                    snackbar.setAction("Close", new View.OnClickListener() {
-                        @Override
-                        public void onClick(View v) {
-                            snackbar.dismiss();
-                        }
-                    })
+            snackbar.setAction("Close", new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    snackbar.dismiss();
+                }
+            })
                     .setActionTextColor(Color.WHITE).setDuration(100000).show();
-        }
-        else if(id == R.id.logout)
-        {
+        } else if (id == R.id.logout) {
             Intent intent = new Intent(this, LoginActivity.class);
             this.startActivity(intent);
         }
@@ -209,10 +197,8 @@ public class ConversationActivity extends AppCompatActivity
         return super.onOptionsItemSelected(item);
     }
 
-    public void handleGeneration()
-    {
-        AsyncTask<Void, Void, Void> task = new AsyncTask<Void, Void, Void>()
-        {
+    public void handleGeneration() {
+        AsyncTask<Void, Void, Void> task = new AsyncTask<Void, Void, Void>() {
             protected Void doInBackground(Void... objects) {
                 try {
                     final List<User> user = mUserTable.where().field("username").eq(mUsername).execute().get();
@@ -224,7 +210,7 @@ public class ConversationActivity extends AppCompatActivity
                     final List<Message> msgTo = findMsgFromTable();
                     final List<Message> msgFrom = findMsgFromTable2();
 
-                    runOnUiThread(new Runnable(){
+                    runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
 
@@ -263,7 +249,7 @@ public class ConversationActivity extends AppCompatActivity
                                     .setActionTextColor(Color.WHITE).setDuration(100000).show();
                         }
                     });
-                } catch (final Exception e){
+                } catch (final Exception e) {
                     createAndShowDialogFromTask(e, "Error");
                 }
 
@@ -273,24 +259,20 @@ public class ConversationActivity extends AppCompatActivity
     }
 
 
-    public void addConversation(View view)
-    {
-    try {
-        final Conversation addConversation = new Conversation();
-        String handle = mConversationCode.getText().toString();
-        String nick = mConversationName.getText().toString();
-        addToTable(addConversation,handle,nick);
-        }
-        catch(Exception e)
-        {
+    public void addConversation(View view) {
+        try {
+            final Conversation addConversation = new Conversation();
+            String handle = mConversationCode.getText().toString();
+            String nick = mConversationName.getText().toString();
+            addToTable(addConversation, handle, nick);
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
 
-    private void addToTable(final Conversation addConversation, final String handle, final String nick)
-    {
-        AsyncTask<Void, Void, Void> task = new AsyncTask<Void, Void, Void>(){
+    private void addToTable(final Conversation addConversation, final String handle, final String nick) {
+        AsyncTask<Void, Void, Void> task = new AsyncTask<Void, Void, Void>() {
             @Override
             protected Void doInBackground(Void... params) {
 
@@ -298,8 +280,8 @@ public class ConversationActivity extends AppCompatActivity
                     final List<User> results = checkUser(handle);
 
 
-                    if (results.size()>0 && !isUser(handle)) {
-                        runOnUiThread(new Runnable(){
+                    if (results.size() > 0 && !isUser(handle)) {
+                        runOnUiThread(new Runnable() {
                             @Override
                             public void run() {
                                 final User u = results.get(0);
@@ -328,7 +310,7 @@ public class ConversationActivity extends AppCompatActivity
                     return null;
 
 
-                } catch (final Exception e){
+                } catch (final Exception e) {
                     createAndShowDialogFromTask(e, "Error");
                 }
                 return null;
@@ -339,7 +321,7 @@ public class ConversationActivity extends AppCompatActivity
     }
 
     public void refreshItemsFromTable() {
-        AsyncTask<Void, Void, Void> task = new AsyncTask<Void, Void, Void>(){
+        AsyncTask<Void, Void, Void> task = new AsyncTask<Void, Void, Void>() {
             @Override
             protected Void doInBackground(Void... params) {
 
@@ -364,7 +346,7 @@ public class ConversationActivity extends AppCompatActivity
                             }
                         }
                     });
-                } catch (final Exception e){
+                } catch (final Exception e) {
                     createAndShowDialogFromTask(e, "Error");
                 }
 
@@ -383,36 +365,34 @@ public class ConversationActivity extends AppCompatActivity
         return mConvoTable.where().field("handleB").eq(val(mHandle)).execute().get();
     }
 
-    private List<User> checkUser(String h) throws ExecutionException, InterruptedException
-    {
+    private List<User> checkUser(String h) throws ExecutionException, InterruptedException {
         return mUserTable.where().field("handle").eq(val(h)).execute().get();
     }
-    private boolean isUser(String h)
-    {
+
+    private boolean isUser(String h) {
 
         return mHandle.equals(h);
     }
 
-    private List<Conversation> userConversations(String h) throws ExecutionException, InterruptedException
-    {
+    private List<Conversation> userConversations(String h) throws ExecutionException, InterruptedException {
         return mConvoTable.where().field("handleA").eq(val(h)).execute().get();
     }
 
-    private List<Conversation> userConversationsB(String h) throws ExecutionException, InterruptedException
-    {
+    private List<Conversation> userConversationsB(String h) throws ExecutionException, InterruptedException {
         return mConvoTable.where().field("handleB").eq(val(h)).execute().get();
     }
 
     private List<Message> findMsgFromTable() throws ExecutionException, InterruptedException {
         return mMessageTable.where().field("mTo").eq(mHandle).execute().get();
     }
+
     private List<Message> findMsgFromTable2() throws ExecutionException, InterruptedException {
         return mMessageTable.where().field("mFrom").eq(mHandle).execute().get();
     }
 
     private void createAndShowDialog(Exception exception, String title) {
         Throwable ex = exception;
-        if(exception.getCause() != null){
+        if (exception.getCause() != null) {
             ex = exception.getCause();
         }
         createAndShowDialog(ex.getMessage(), title);
@@ -435,6 +415,7 @@ public class ConversationActivity extends AppCompatActivity
             }
         });
     }
+
     private AsyncTask<Void, Void, Void> runAsyncTask(AsyncTask<Void, Void, Void> task) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
             return task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
@@ -443,53 +424,43 @@ public class ConversationActivity extends AppCompatActivity
         }
     }
 
-    private boolean validInput(android.text.Editable field)
-    {
+    private boolean validInput(android.text.Editable field) {
         //Peculiarly, isEmpty returns true when the field is filled
         return TextUtils.isEmpty(field);
     }
 
 
-
-    public void startMessaging(View view, Conversation c)
-    {
+    public void startMessaging(View view, Conversation c) {
         Intent intent = new Intent(view.getContext(), MessagingActivity.class);
         Bundle bundle = new Bundle();
-        bundle.putString("EXTRA_MYUSERNAME",mUsername);
-        bundle.putString("EXTRA_MYHANDLE",mHandle);
-        if(c.isExist) {
+        bundle.putString("EXTRA_MYUSERNAME", mUsername);
+        bundle.putString("EXTRA_MYHANDLE", mHandle);
+        if (c.isExist) {
             bundle.putString("EXTRA_MYNICKNAME", c.getNicknameA());
-            bundle.putString("EXTRA_TOHANDLE",c.mHandleB);
-            bundle.putString("EXTRA_TONICK",c.getNicknameB());
-            System.out.println("Beginning new activity, NICKNAME IS: " +c.getNicknameA());
-        }
-        else
-        {
+            bundle.putString("EXTRA_TOHANDLE", c.mHandleB);
+            bundle.putString("EXTRA_TONICK", c.getNicknameB());
+        } else {
             bundle.putString("EXTRA_MYNICKNAME", c.getNicknameB());
-            bundle.putString("EXTRA_TOHANDLE",c.mHandleA);
-            bundle.putString("EXTRA_TONICK",c.getNicknameA());
-            System.out.println("Beginning new activity, NICKNAME IS: " +c.getNicknameB());
+            bundle.putString("EXTRA_TOHANDLE", c.mHandleA);
+            bundle.putString("EXTRA_TONICK", c.getNicknameA());
         }
-        //TONICK must be established by a call to the database
-        //It won't even exist until the other party accepts, so this logic will require adjusting
 
         intent.putExtras(bundle);
         view.getContext().startActivity(intent);
     }
 
-    private String generateHandle(int n){
+    private String generateHandle(int n) {
 
-        StringBuilder sb = new StringBuilder( n );
+        StringBuilder sb = new StringBuilder(n);
         sb.append('$');
-        for( int i = 0; i < n-1; i++ )
-            sb.append( AB.charAt( rnd.nextInt(AB.length()) ) );
+        for (int i = 0; i < n - 1; i++)
+            sb.append(AB.charAt(rnd.nextInt(AB.length())));
         return sb.toString();
     }
 
     @Override
     protected void onRestart() {
         super.onRestart();
-
         refreshItemsFromTable();
     }
 }

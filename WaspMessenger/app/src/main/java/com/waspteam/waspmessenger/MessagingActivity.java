@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AlertDialog;
@@ -32,6 +33,8 @@ import static com.microsoft.windowsazure.mobileservices.table.query.QueryOperati
 
 public class MessagingActivity extends AppCompatActivity {
 
+    Handler messageHandler = new Handler();
+    private final int REFRESH_TIME_SECONDS = 3;
     private String mUsername;
     private String mToNick;
     private String mToHandle;
@@ -120,6 +123,7 @@ public class MessagingActivity extends AppCompatActivity {
                         .create().show();
             }
         });
+        messageRefresh.run();
     }
 
     public void sendMessage(View view) {
@@ -254,4 +258,12 @@ public class MessagingActivity extends AppCompatActivity {
         super.onRestart();
         mAdapter.notifyDataSetChanged();
     }
+    Runnable messageRefresh = new Runnable() {
+        @Override
+        public void run() {
+            refreshItemsFromTable();
+
+            messageHandler.postDelayed(this, 3*1000 );
+        }
+    };
 }

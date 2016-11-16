@@ -78,6 +78,7 @@ public class MessagingActivity extends AppCompatActivity {
         Intent intent = getIntent();
         Bundle bundle = intent.getExtras();
 
+        //bundled variables from covnersation activity
         mUsername = bundle.getString("EXTRA_MYUSERNAME");
         mMyHandle = bundle.getString("EXTRA_MYHANDLE");
         mMyNick = bundle.getString("EXTRA_MYNICKNAME");
@@ -85,7 +86,7 @@ public class MessagingActivity extends AppCompatActivity {
         mToNick = bundle.getString("EXTRA_TONICK");
 
         setTitle(mToNick);
-        LoadItemsFromTable();
+        refreshItemsFromTable(); //refresh message list
         send.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -93,6 +94,7 @@ public class MessagingActivity extends AppCompatActivity {
             }
         });
 
+        //prompt user to change nickname
         cNick.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -105,7 +107,7 @@ public class MessagingActivity extends AppCompatActivity {
                 builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int id) {
                         EditText text = (EditText) promptView.findViewById(R.id.edittext);
-                        updateNickname(text.getText().toString());
+                        updateNickname(text.getText().toString());// update the nickname in the server
                         dialog.dismiss();
                     }
                 })
@@ -121,22 +123,14 @@ public class MessagingActivity extends AppCompatActivity {
     }
 
     public void sendMessage(View view) {
-        //ROOM FOR IMPROVEMENT HERE!
-        //MESSAGE SHOULD DISPLAY "ME" WHEN BINDING MESSAGES FROM THE CURRENTLY-LOGGED USER
-
-        //NOTE: NEED TO GET CURRENT TIME HERE AND IN FORMAT THAT DISPLAYS ELEGANTLY
-
-        //NOTE: CURRENTLY, THE GENERATED MESSAGES AREN'T USING THE BUBBLE GRAPHIC THEY SHOULD BE,
-        //THIS PROBABLY NEEDS TO BE MANUALLY SET IN THE ADAPTER CLASS, AS WELL AS THE PADDING.
-
-        final Message newMessage = new Message(mMyHandle, mToHandle, mMessageEdit.getText().toString(), mMyNick,mMyHandle);
-
-        messageTable.insert(newMessage);
-        refreshItemsFromTable();
+        final Message newMessage = new Message(mMyHandle, mToHandle, mMessageEdit.getText().toString(), mMyNick, mMyHandle);
+        messageTable.insert(newMessage); //insert the message to the server table
+        refreshItemsFromTable(); //refresh the message list
         mMessageEdit.setText("");
 
     }
 
+    //refresh messages from the table
     public void refreshItemsFromTable() {
         AsyncTask<Void, Void, Void> task = new AsyncTask<Void, Void, Void>() {
             @Override
@@ -145,7 +139,6 @@ public class MessagingActivity extends AppCompatActivity {
                 try {
                     final List<Message> results = refreshItemsFromMessageoTable();
 
-
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
@@ -167,55 +160,15 @@ public class MessagingActivity extends AppCompatActivity {
         runAsyncTask(task);
     }
 
-    public void LoadItemsFromTable() {
-        AsyncTask<Void, Void, Void> task = new AsyncTask<Void, Void, Void>() {
-            @Override
-            protected Void doInBackground(Void... params) {
-
-                try {
-                    final List<Message> results = refreshItemsFromMessageoTable();
-
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            mAdapter.clear();
-
-                            for (Message item : results) {
-                                mAdapter.add(item);
-                            }
-                        }
-                    });
-                } catch (final Exception e) {
-                    createAndShowDialogFromTask(e, "Error");
-                }
-
-                return null;
-            }
-        };
-
-        runAsyncTask(task);
-    }
-
-    /*
-    private List<Message> refreshItemsFromMessageoTable() throws ExecutionException, InterruptedException {
-        return messageTable.where().field("mFrom").
-                eq(val(mMyHandle)).and().field("mTo").eq(val(mToHandle)).or().field("mTo").eq(val(mMyHandle)).and().field("mFrom").eq(val(mToHandle)).execute().get();
-    }*/
-
-
-    private List<Message> refreshItemsFromMessageoTable() throws ExecutionException, InterruptedException {
-        return messageTable.where().field("mFrom").
-                eq(val(mMyHandle)).or().field("mFrom").eq(val(mUsername)).and().field("mTo").eq(val(mToHandle))
-                .or().field("mTo").eq(val(mMyHandle)).or().field("mTo").eq(val(mUsername)).and().field("mFrom").eq(val(mToHandle)).execute().get();
-    }
+    //updates nickname in message conversation
     public void updateNickname(final String nick) {
         AsyncTask<Void, Void, Void> task = new AsyncTask<Void, Void, Void>() {
             @Override
             protected Void doInBackground(Void... params) {
 
                 try {
-                    final List<Conversation> result = findConvoFromTable();
-                    final List<Conversation> resultB = findConvoFromTable2();
+                    final List<Conversation> result = findConvoFromTable(); //find the current conversation and see if user is in nicknameB
+                    final List<Conversation> resultB = findConvoFromTable2(); //find the current conversation and see if user is in nicknameA
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
@@ -226,7 +179,7 @@ public class MessagingActivity extends AppCompatActivity {
                                 c.mNicknameB = nick;
                                 mConvoTable.update(c);
                                 mMyNick = nick;
-                            } else {
+                            } else { //update nickname A
                                 final Conversation c = resultB.get(0);
                                 c.mNicknameA = nick;
                                 mConvoTable.update(c);
@@ -244,6 +197,12 @@ public class MessagingActivity extends AppCompatActivity {
         };
 
         runAsyncTask(task);
+    }
+
+    private List<Message> refreshItemsFromMessageoTable() throws ExecutionException, InterruptedException {
+        return messageTable.where().field("mFrom").
+                eq(val(mMyHandle)).or().field("mFrom").eq(val(mUsername)).and().field("mTo").eq(val(mToHandle))
+                .or().field("mTo").eq(val(mMyHandle)).or().field("mTo").eq(val(mUsername)).and().field("mFrom").eq(val(mToHandle)).execute().get();
     }
 
     private List<Conversation> findConvoFromTable() throws ExecutionException, InterruptedException {

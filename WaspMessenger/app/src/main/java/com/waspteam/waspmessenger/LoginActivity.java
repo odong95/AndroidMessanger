@@ -28,14 +28,15 @@ import java.security.spec.InvalidKeySpecException;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
 
 import java.util.concurrent.Semaphore;
 
-public class LoginActivity extends AppCompatActivity
-{
+public class LoginActivity extends AppCompatActivity {
     Semaphore loginSem = new Semaphore(0);
 
     MobileServiceClient mClient = null;
@@ -45,7 +46,8 @@ public class LoginActivity extends AppCompatActivity
     boolean loginResult;
     byte[] userSalt;
 
-    byte[] pepper ={8,-52,-61,86,-55,-75,-94,14,99,-36,100,118,74,20,101,9,49,118,-62,27,121,-14,-97,-24,45,-113,107,126,94,-48,-81,36,-55,-92,-34,-11};
+    byte[] pepper = {8, -52, -61, 86, -55, -75, -94, 14, 99, -36, 100, 118, 74, 20, 101, 9, 49, 118, -62, 27, 121, -14, -97, -24, 45, -113, 107, 126, 94, -48, -81, 36, -55, -92, -34, -11};
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -55,11 +57,10 @@ public class LoginActivity extends AppCompatActivity
         final Button Register = (Button) findViewById(R.id.bRegister);
         final Button bLogin = (Button) findViewById(R.id.bLogin);
 
-        loginResult=false;
-        userSalt=null;
+        loginResult = false;
+        userSalt = null;
 
-        try
-        {
+        try {
             mClient = new MobileServiceClient("https://waspsmessenger.azurewebsites.net", this);
             mClientAPI = new MobileServiceClient("https://waspsmessenger.azurewebsites.net/api", this);
             userTable = mClient.getTable(User.class);
@@ -72,10 +73,10 @@ public class LoginActivity extends AppCompatActivity
                     return client;
                 }
             });
+        } catch (Exception e) {
         }
-        catch(Exception e){}
 
-        if(mClient==null) {
+        if (mClient == null) {
             AlertDialog.Builder builder = new AlertDialog.Builder(LoginActivity.this);
             builder.setMessage("Client")
                     .setNegativeButton("Try again", null)
@@ -83,19 +84,20 @@ public class LoginActivity extends AppCompatActivity
         }
 
 
-        Register.setOnClickListener(new View.OnClickListener(){
+        Register.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onClick(View v)
-            {
+            public void onClick(View v) {
+                if (etUsername.getText().toString().isEmpty() || etPassword.getText().toString().isEmpty()) {
+                    return;
+                }
                 final String username = etUsername.getText().toString();
                 final String password = etPassword.getText().toString();
-                AsyncTask<String, Void, Void> task = new AsyncTask<String, Void, Void>()
-                {
+                AsyncTask<String, Void, Void> task = new AsyncTask<String, Void, Void>() {
 
                     @Override
                     protected Void doInBackground(String[] objects) {
                         if (register(objects[0], objects[1])) {
-                            runOnUiThread(new Runnable(){
+                            runOnUiThread(new Runnable() {
                                 @Override
                                 public void run() {
                                     AlertDialog.Builder builder = new AlertDialog.Builder(LoginActivity.this);
@@ -110,7 +112,7 @@ public class LoginActivity extends AppCompatActivity
                                 @Override
                                 public void run() {
                                     AlertDialog.Builder builder = new AlertDialog.Builder(LoginActivity.this);
-                                    builder.setMessage("That username is already taken")
+                                    builder.setMessage("That username or password is invalid/already taken")
                                             .setNegativeButton("Try again", null)
                                             .create().show();
                                 }
@@ -124,20 +126,27 @@ public class LoginActivity extends AppCompatActivity
                 etPassword.setText("");
             }
         });
-        bLogin.setOnClickListener(new View.OnClickListener(){
+        bLogin.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onClick(View v)
-            {
+            public void onClick(View v) {
+                if (etUsername.getText().toString().isEmpty() || etPassword.getText().toString().isEmpty()) {
+                    return;
+                } else if (!isValidPassword(etPassword.getText().toString()) || !isValidLogin(etUsername.getText().toString())) {
+                    AlertDialog.Builder builder = new AlertDialog.Builder(LoginActivity.this);
+                    builder.setMessage("Login Failed")
+                            .setNegativeButton("Try again", null)
+                            .create().show();
+                    return;
+                }
                 final String username = etUsername.getText().toString();
                 final String password = etPassword.getText().toString();
 
-                AsyncTask<String, Void, Void> task = new AsyncTask<String, Void, Void>()
-                {
+                AsyncTask<String, Void, Void> task = new AsyncTask<String, Void, Void>() {
 
                     @Override
                     protected Void doInBackground(String[] objects) {
                         if (login(objects[0], objects[1])) {
-                            runOnUiThread(new Runnable(){
+                            runOnUiThread(new Runnable() {
                                 @Override
                                 public void run() {
                                     Intent intent = new Intent(LoginActivity.this, ConversationActivity.class);
@@ -168,40 +177,43 @@ public class LoginActivity extends AppCompatActivity
 
     }
 
-    public boolean register(String username, String password)
-    {
-        try
-        {
-            //check to see if username is available
+    public boolean register(String username, String password) {
+        try {
 
-           if(!isAvailable(username))
-               return false;
+            //if username has special characters, its invalid
+            if (!isValidLogin(username)) {
+                return false;
+            }
+
+            //if the password doesn't meet criteria, its invalid
+            if (!isValidPassword(password)) {
+                return false;
+            }
+            //check to see if username is available
+            if (!isAvailable(username))
+                return false;
             //Generate salt and hash the password
             byte[] salt = generateSalt();
-            String salt1 = new String (salt, "ISO-8859-1");
+            String salt1 = new String(salt, "ISO-8859-1");
             byte[] salt2 = salt1.getBytes("ISO-8859-1");
             byte[] hash = hashPassword(password, salt);
             //insert new user into table
             User user = new User(username, hash, salt);
             userTable.insert(user);
             return true;
-        }
-        catch(Exception e)
-        {
-            createAndShowDialog(e, "error");
+        } catch (Exception e) {
+            createAndShowDialog(e, "Error");
         }
         return false;
     }
 
     /**
-     *
      * @param username
      * @param password
      * @return true on success </br> false on failure
      */
 
-    public boolean login(String username, String password)
-    {
+    public boolean login(String username, String password) {
         loginResult = false;
 
         UserCredentials credentials = new UserCredentials();
@@ -209,37 +221,27 @@ public class LoginActivity extends AppCompatActivity
         credentials.password = "";
 
         //Fetch JUST the salt value for this username (without seeing the table)
-        try
-        {
+        try {
             ListenableFuture<ReturnSalt> saltResult = mClientAPI.invokeApi("getSalt", credentials, ReturnSalt.class);
 
-            Futures.addCallback(saltResult, new FutureCallback<ReturnSalt>()
-            {
+            Futures.addCallback(saltResult, new FutureCallback<ReturnSalt>() {
                 @Override
-                public void onFailure(Throwable e)
-                {
+                public void onFailure(Throwable e) {
                     //No valid salt found
-                    try
-                    {
+                    try {
                         loginSem.release();
-                    }
-                    catch(Exception ex)
-                    {
+                    } catch (Exception ex) {
                         ex.printStackTrace();
                     }
                 }
 
                 @Override
-                public void onSuccess(ReturnSalt result)
-                {
+                public void onSuccess(ReturnSalt result) {
 
-                    try
-                    {
+                    try {
                         userSalt = result.salt.getBytes("ISO-8859-1");
                         loginSem.release();
-                    }
-                    catch(Exception e)
-                    {
+                    } catch (Exception e) {
                         e.printStackTrace();
                     }
 
@@ -249,66 +251,48 @@ public class LoginActivity extends AppCompatActivity
             });
 
 
-        }
-        catch (Exception e)
-        {
+        } catch (Exception e) {
             e.printStackTrace();
         }
 
-        try
-        {
+        try {
             loginSem.acquire();
-        }
-        catch(Exception e)
-        {
+        } catch (Exception e) {
             e.printStackTrace();
         }
 
 
         //Salt the password to send to the server
-        try
-        {
-            credentials.password = new String (hashPassword(password,userSalt), "ISO-8859-1");
-        }
-        catch(Exception e)
-        {
+        try {
+            credentials.password = new String(hashPassword(password, userSalt), "ISO-8859-1");
+        } catch (Exception e) {
             e.printStackTrace();
         }
 
         //Check login and then return results
 
-        try
-        {
+        try {
             ListenableFuture<LoginAttempt> saltResult = mClientAPI.invokeApi("login", credentials, LoginAttempt.class);
 
-            Futures.addCallback(saltResult, new FutureCallback<LoginAttempt>()
-            {
+            Futures.addCallback(saltResult, new FutureCallback<LoginAttempt>() {
                 @Override
-                public void onFailure(Throwable e)
-                {
+                public void onFailure(Throwable e) {
                     //Invalid login credentials
-                    try
-                    {
+                    try {
                         loginSem.release();
-                    }
-                    catch(Exception ex)
-                    {
+                    } catch (Exception ex) {
                         ex.printStackTrace();
                     }
                 }
 
                 @Override
-                public void onSuccess(LoginAttempt result)
-                {
+                public void onSuccess(LoginAttempt result) {
                     Snackbar.make(findViewById(R.id.bLogin), "Successful return of password!", Snackbar.LENGTH_LONG)
                             .setAction("Action", null).show();
                     loginResult = true;
-                    try
-                    {
+                    try {
                         loginSem.release();
-                    }
-                    catch(Exception e)
-                    {
+                    } catch (Exception e) {
                         e.printStackTrace();
                     }
                 }
@@ -316,18 +300,13 @@ public class LoginActivity extends AppCompatActivity
             });
 
 
-        }
-        catch (Exception e)
-        {
+        } catch (Exception e) {
             e.printStackTrace();
         }
 
-        try
-        {
+        try {
             loginSem.acquire();
-        }
-        catch(Exception e)
-        {
+        } catch (Exception e) {
             e.printStackTrace();
         }
 
@@ -339,8 +318,7 @@ public class LoginActivity extends AppCompatActivity
      *
      * @return a random 32 byte array
      */
-    private byte[] generateSalt()
-    {
+    private byte[] generateSalt() {
         SecureRandom rand = new SecureRandom();
         byte[] salt = new byte[36];
         rand.nextBytes(salt);
@@ -348,19 +326,21 @@ public class LoginActivity extends AppCompatActivity
     }
 
     private byte[] hashPassword(String password, byte[] salt) throws NoSuchAlgorithmException, InvalidKeySpecException, IOException {
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream( );
-        outputStream.write( salt );
-        outputStream.write( pepper );
-        byte saltPepper[] = outputStream.toByteArray( );
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        outputStream.write(salt);
+        outputStream.write(pepper);
+        byte saltPepper[] = outputStream.toByteArray();
         PBEKeySpec key = new PBEKeySpec(password.toCharArray(), saltPepper, 100, 256);
         SecretKeyFactory keyGen = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA1");
         return keyGen.generateSecret(key).getEncoded();
     }
-    private boolean checkPassword(String password,String hash, byte[] salt) throws NoSuchAlgorithmException, InvalidKeySpecException, IOException {
-        byte[] hashPass = hashPassword(password,salt);
+
+    private boolean checkPassword(String password, String hash, byte[] salt) throws NoSuchAlgorithmException, InvalidKeySpecException, IOException {
+        byte[] hashPass = hashPassword(password, salt);
         boolean result = new String(hashPass, "ISO-8859-1").equals(hash);
         return result;
     }
+
     private boolean isAvailable(final String username) throws ExecutionException, InterruptedException {
 
         try {
@@ -369,7 +349,7 @@ public class LoginActivity extends AppCompatActivity
                     .field("username").eq(username)
                     .execute().get();
             //results.add(new User("assas", "asasa".getBytes(),"asasas".getBytes()));
-            if (results.size()==0)
+            if (results.size() == 0)
                 return true;
         } catch (final Exception e) {
 
@@ -378,15 +358,35 @@ public class LoginActivity extends AppCompatActivity
         return false;
     }
 
-    private boolean isValidLogin()
-    {
-        return false;
+    //checks if username is valid
+    private boolean isValidLogin(String login) {
+        Pattern p = Pattern.compile("[^A-Za-z0-9 ]");
+        Matcher m = p.matcher(login);
+        boolean b = m.find();
+        if (b) {
+            return false;
+        }
+        return true;
     }
 
-    private boolean isValidPassword()
-    {
-        return false;
+    //checks if password is valid
+    private boolean isValidPassword(String password) {
+        Pattern pattern = Pattern.compile("['$<>^]");
+        Pattern pattern2 = Pattern.compile("[!@#_^]");
+        Matcher matcher = pattern.matcher(password); //must not contain any of these characters
+        Matcher matcher2 = pattern2.matcher(password);//must contain these special characters
+
+
+        if (password.length() < 8 || password.length() > 40) {
+            return false;
+        } else if (matcher.find()) {
+            return false;
+        } else if (!matcher2.find()) {
+            return false;
+        }
+        return true;
     }
+
     private void createAndShowDialogFromTask(final Exception exception, String title) {
         runOnUiThread(new Runnable() {
             @Override
@@ -395,13 +395,15 @@ public class LoginActivity extends AppCompatActivity
             }
         });
     }
+
     private void createAndShowDialog(Exception exception, String title) {
         Throwable ex = exception;
-        if(exception.getCause() != null){
+        if (exception.getCause() != null) {
             ex = exception.getCause();
         }
         createAndShowDialog(ex.getMessage(), title);
     }
+
     private void createAndShowDialog(final String message, final String title) {
         final android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(this);
 

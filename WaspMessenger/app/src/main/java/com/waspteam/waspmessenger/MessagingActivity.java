@@ -84,13 +84,6 @@ public class MessagingActivity extends AppCompatActivity {
         mToHandle = bundle.getString("EXTRA_TOHANDLE");
         mToNick = bundle.getString("EXTRA_TONICK");
 
-        /*
-        mUsername="testUser";
-        mMyHandle="test";
-        mMyNick="Timmy";
-        mToHandle="Tom";
-        mToNick="Nick";
-        */
         setTitle(mToNick);
         LoadItemsFromTable();
         send.setOnClickListener(new View.OnClickListener() {
@@ -136,7 +129,7 @@ public class MessagingActivity extends AppCompatActivity {
         //NOTE: CURRENTLY, THE GENERATED MESSAGES AREN'T USING THE BUBBLE GRAPHIC THEY SHOULD BE,
         //THIS PROBABLY NEEDS TO BE MANUALLY SET IN THE ADAPTER CLASS, AS WELL AS THE PADDING.
 
-        final Message newMessage = new Message(mMyHandle, mToHandle, mMessageEdit.getText().toString(), mMyNick);
+        final Message newMessage = new Message(mMyHandle, mToHandle, mMessageEdit.getText().toString(), mMyNick,mMyHandle);
 
         messageTable.insert(newMessage);
         refreshItemsFromTable();
@@ -203,11 +196,18 @@ public class MessagingActivity extends AppCompatActivity {
         runAsyncTask(task);
     }
 
+    /*
     private List<Message> refreshItemsFromMessageoTable() throws ExecutionException, InterruptedException {
         return messageTable.where().field("mFrom").
                 eq(val(mMyHandle)).and().field("mTo").eq(val(mToHandle)).or().field("mTo").eq(val(mMyHandle)).and().field("mFrom").eq(val(mToHandle)).execute().get();
-    }
+    }*/
 
+
+    private List<Message> refreshItemsFromMessageoTable() throws ExecutionException, InterruptedException {
+        return messageTable.where().field("mFrom").
+                eq(val(mMyHandle)).or().field("mFrom").eq(val(mUsername)).and().field("mTo").eq(val(mToHandle))
+                .or().field("mTo").eq(val(mMyHandle)).or().field("mTo").eq(val(mUsername)).and().field("mFrom").eq(val(mToHandle)).execute().get();
+    }
     public void updateNickname(final String nick) {
         AsyncTask<Void, Void, Void> task = new AsyncTask<Void, Void, Void>() {
             @Override

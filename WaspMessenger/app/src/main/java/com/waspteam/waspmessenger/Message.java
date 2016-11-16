@@ -17,17 +17,19 @@ public class Message
     private String nick;
     @com.google.gson.annotations.SerializedName("id")
     private String id;
+    private String handle;
     public Message()
     {
 
     }
 
-    public Message(String from, String to, String text, String nick)
+    public Message(String from, String to, String text, String nick,String handle)
     {
         mFrom=from;
         mTo=to;
         mText=text;
         this.nick = nick;
+        this.handle = handle;
         Calendar cal = Calendar.getInstance();
         SimpleDateFormat sdf = new SimpleDateFormat("MMM d, h:mm a");
         mTimestamp=sdf.format(cal.getTime());;
@@ -63,6 +65,10 @@ public class Message
     public String getFrom()
     {
         return nick;
+    }
+    public String getHandle()
+    {
+        return handle;
     }
 
     public String getTime()

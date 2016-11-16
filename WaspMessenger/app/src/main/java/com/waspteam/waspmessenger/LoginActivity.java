@@ -111,7 +111,7 @@ public class LoginActivity extends AppCompatActivity
                                 public void run() {
                                     AlertDialog.Builder builder = new AlertDialog.Builder(LoginActivity.this);
                                     builder.setMessage("That username is already taken")
-                                            .setNegativeButton("Try agan", null)
+                                            .setNegativeButton("Try again", null)
                                             .create().show();
                                 }
                             });
@@ -378,6 +378,15 @@ public class LoginActivity extends AppCompatActivity
         return false;
     }
 
+    private boolean isValidLogin()
+    {
+        return false;
+    }
+
+    private boolean isValidPassword()
+    {
+        return false;
+    }
     private void createAndShowDialogFromTask(final Exception exception, String title) {
         runOnUiThread(new Runnable() {
             @Override

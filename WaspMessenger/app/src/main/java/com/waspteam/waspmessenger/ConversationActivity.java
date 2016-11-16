@@ -214,7 +214,6 @@ public class ConversationActivity extends AppCompatActivity {
                         @Override
                         public void run() {
 
-                            AlertDialog.Builder builder = new AlertDialog.Builder(ConversationActivity.this);
                             final String newHandle = generateHandle(10);
                             u.handle = newHandle;
                             mHandle = newHandle;
@@ -238,11 +237,11 @@ public class ConversationActivity extends AppCompatActivity {
                                 item4.setFrom(newHandle);
                                 mMessageTable.update(item4);
                             }
+                            refreshItemsFromTable();
                             final Snackbar snackbar = Snackbar.make(findViewById(android.R.id.content), "New Handle Code: " + newHandle, Snackbar.LENGTH_LONG);
                             snackbar.setAction("Close", new View.OnClickListener() {
                                 @Override
                                 public void onClick(View v) {
-
                                     snackbar.dismiss();
                                 }
                             })
@@ -278,18 +277,30 @@ public class ConversationActivity extends AppCompatActivity {
 
                 try {
                     final List<User> results = checkUser(handle);
+                    final List<User> results2 = checkUser2(handle); //checks username
 
-
-                    if (results.size() > 0 && !isUser(handle)) {
+                    if ((results.size() > 0 || results2.size() > 0) && !isUser(handle)) {
                         runOnUiThread(new Runnable() {
                             @Override
                             public void run() {
-                                final User u = results.get(0);
+                                final User u;
                                 mAdapter.clear();
-                                addConversation.mHandleB = handle;
-                                addConversation.mHandleA = mHandle;
+
+
                                 addConversation.mNicknameA = nick;
-                                addConversation.mNicknameB = u.handle;
+                                if(results.size() > 0) { //anon conversation
+                                    u = results.get(0);
+                                    addConversation.mNicknameB = u.handle;
+                                    addConversation.mHandleB = handle;
+                                    addConversation.mHandleA = mHandle;
+                                }
+                                else //known conversation
+                                {
+                                    u= results2.get(0);
+                                    addConversation.mNicknameB = u.username;
+                                    addConversation.mHandleB = handle;
+                                    addConversation.mHandleA = mUsername;
+                                }
                                 mConvoTable.insert(addConversation);
                                 mAdapter.add(addConversation);
                                 refreshItemsFromTable();
@@ -358,20 +369,23 @@ public class ConversationActivity extends AppCompatActivity {
     }
 
     private List<Conversation> refreshItemsFromConvoTable() throws ExecutionException, InterruptedException {
-        return mConvoTable.where().field("handleA").eq(val(mHandle)).execute().get();
+        return mConvoTable.where().field("handleA").eq(val(mHandle)).or().field("handleA").eq(val(mUsername)).execute().get();
     }
 
     private List<Conversation> refreshItemsFromConvoTable2() throws ExecutionException, InterruptedException {
-        return mConvoTable.where().field("handleB").eq(val(mHandle)).execute().get();
+        return mConvoTable.where().field("handleB").eq(val(mHandle)).or().field("handleB").eq(val(mUsername)).execute().get();
     }
 
     private List<User> checkUser(String h) throws ExecutionException, InterruptedException {
         return mUserTable.where().field("handle").eq(val(h)).execute().get();
     }
+    private List<User> checkUser2(String h) throws ExecutionException, InterruptedException {
+        return mUserTable.where().field("username").eq(val(h)).execute().get();
+    }
 
     private boolean isUser(String h) {
 
-        return mHandle.equals(h);
+        return mHandle.equals(h) || mUsername.equals(h);
     }
 
     private List<Conversation> userConversations(String h) throws ExecutionException, InterruptedException {
@@ -434,12 +448,14 @@ public class ConversationActivity extends AppCompatActivity {
         Intent intent = new Intent(view.getContext(), MessagingActivity.class);
         Bundle bundle = new Bundle();
         bundle.putString("EXTRA_MYUSERNAME", mUsername);
-        bundle.putString("EXTRA_MYHANDLE", mHandle);
+
         if (c.isExist) {
+            bundle.putString("EXTRA_MYHANDLE", c.mHandleA);
             bundle.putString("EXTRA_MYNICKNAME", c.getNicknameA());
             bundle.putString("EXTRA_TOHANDLE", c.mHandleB);
             bundle.putString("EXTRA_TONICK", c.getNicknameB());
         } else {
+            bundle.putString("EXTRA_MYHANDLE", c.mHandleB);
             bundle.putString("EXTRA_MYNICKNAME", c.getNicknameB());
             bundle.putString("EXTRA_TOHANDLE", c.mHandleA);
             bundle.putString("EXTRA_TONICK", c.getNicknameA());
@@ -463,6 +479,8 @@ public class ConversationActivity extends AppCompatActivity {
         super.onRestart();
         refreshItemsFromTable();
     }
+
+
 }
 
 

@@ -44,7 +44,7 @@ public class MessageAdapter extends ArrayAdapter<Message>
 
         row.setTag(bindMessage);
         final TextView messageText = (TextView) row.findViewById(R.id.messageText);
-        messageText.setText(bindMessage.getFrom() + ": " + bindMessage.getText());
+        messageText.setText(bindMessage.getFrom() + "("+ bindMessage.getHandle()+ ")"+": " + bindMessage.getText());
         messageText.setEnabled(true);
 
         final TextView timeText = (TextView) row.findViewById(R.id.messageTimestamp);

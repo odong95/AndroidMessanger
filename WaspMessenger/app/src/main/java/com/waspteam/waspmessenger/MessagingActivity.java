@@ -127,7 +127,7 @@ public class MessagingActivity extends AppCompatActivity {
                         .create().show();
             }
         });
-        messageRefresh.run();
+
     }
 
     public void sendMessage(View view) {
@@ -146,7 +146,6 @@ public class MessagingActivity extends AppCompatActivity {
 
                 try {
                     final List<Message> results = refreshItemsFromMessageTable();
-
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
@@ -257,14 +256,20 @@ public class MessagingActivity extends AppCompatActivity {
         }
     }
 
-    /*
+
+
     @Override
-    protected void onStop() {
-        super.onStop();
-        System.out.println("stop");
-        this.finish();
+    protected void onPause() {
+        messageHandler.removeCallbacks(messageRefresh);
+        super.onPause();
     }
-    */
+
+    @Override
+    protected void onResume()
+    {
+        messageRefresh.run();
+        super.onResume();
+    }
     Runnable messageRefresh = new Runnable() {
         @Override
         public void run() {

@@ -76,20 +76,24 @@ public class MessagingActivity extends AppCompatActivity {
                     return client;
                 }
             });
+
+            Intent intent = getIntent();
+            Bundle bundle = intent.getExtras();
+
+            //bundled variables from covnersation activity
+            mUsername = bundle.getString("EXTRA_MYUSERNAME");
+            mMyHandle = bundle.getString("EXTRA_MYHANDLE");
+            mMyNick = bundle.getString("EXTRA_MYNICKNAME");
+            mToHandle = bundle.getString("EXTRA_TOHANDLE");
+            mToNick = bundle.getString("EXTRA_TONICK");
+
+            setTitle(mToNick);
+            refreshItemsFromTable(); //refresh message list
+
         } catch (Exception e) {
         }
-        Intent intent = getIntent();
-        Bundle bundle = intent.getExtras();
 
-        //bundled variables from covnersation activity
-        mUsername = bundle.getString("EXTRA_MYUSERNAME");
-        mMyHandle = bundle.getString("EXTRA_MYHANDLE");
-        mMyNick = bundle.getString("EXTRA_MYNICKNAME");
-        mToHandle = bundle.getString("EXTRA_TOHANDLE");
-        mToNick = bundle.getString("EXTRA_TONICK");
 
-        setTitle(mToNick);
-        refreshItemsFromTable(); //refresh message list
         send.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -141,7 +145,7 @@ public class MessagingActivity extends AppCompatActivity {
             protected Void doInBackground(Void... params) {
 
                 try {
-                    final List<Message> results = refreshItemsFromMessageoTable();
+                    final List<Message> results = refreshItemsFromMessageTable();
 
                     runOnUiThread(new Runnable() {
                         @Override
@@ -203,10 +207,10 @@ public class MessagingActivity extends AppCompatActivity {
         runAsyncTask(task);
     }
 
-    private List<Message> refreshItemsFromMessageoTable() throws ExecutionException, InterruptedException {
+    private List<Message> refreshItemsFromMessageTable() throws ExecutionException, InterruptedException {
         return messageTable.where().field("mFrom").
-                eq(val(mMyHandle)).or().field("mFrom").eq(val(mUsername)).and().field("mTo").eq(val(mToHandle))
-                .or().field("mTo").eq(val(mMyHandle)).or().field("mTo").eq(val(mUsername)).and().field("mFrom").eq(val(mToHandle)).execute().get();
+                eq(val(mMyHandle)).and().field("mTo").eq(val(mToHandle))
+                .or().field("mTo").eq(val(mMyHandle)).and().field("mFrom").eq(val(mToHandle)).execute().get();
     }
 
     private List<Conversation> findConvoFromTable() throws ExecutionException, InterruptedException {
@@ -253,16 +257,18 @@ public class MessagingActivity extends AppCompatActivity {
         }
     }
 
+    /*
     @Override
-    protected void onRestart() {
-        super.onRestart();
-        mAdapter.notifyDataSetChanged();
+    protected void onStop() {
+        super.onStop();
+        System.out.println("stop");
+        this.finish();
     }
+    */
     Runnable messageRefresh = new Runnable() {
         @Override
         public void run() {
             refreshItemsFromTable();
-
             messageHandler.postDelayed(this, 3*1000 );
         }
     };

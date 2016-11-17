@@ -282,12 +282,24 @@ public class ConversationActivity extends AppCompatActivity {
 
         //if current user's handle is in handleA of the conversation, bundle extra variables to messaging
         if (c.isExist) {
-            bundle.putString("EXTRA_MYHANDLE", c.mHandleA);
+            if(mUsername.equals(c.mHandleA)) {
+                bundle.putString("EXTRA_MYHANDLE", mUsername);
+            }
+            else
+            {
+                bundle.putString("EXTRA_MYHANDLE", c.mHandleA);
+            }
             bundle.putString("EXTRA_MYNICKNAME", c.getNicknameA());
             bundle.putString("EXTRA_TOHANDLE", c.mHandleB);
             bundle.putString("EXTRA_TONICK", c.getNicknameB());
         } else { //otherwise its in handleB's
-            bundle.putString("EXTRA_MYHANDLE", c.mHandleB);
+            if(mUsername.equals(c.mHandleA)) {
+                bundle.putString("EXTRA_MYHANDLE", mUsername);
+            }
+            else
+            {
+                bundle.putString("EXTRA_MYHANDLE", c.mHandleB);
+            }
             bundle.putString("EXTRA_MYNICKNAME", c.getNicknameB());
             bundle.putString("EXTRA_TOHANDLE", c.mHandleA);
             bundle.putString("EXTRA_TONICK", c.getNicknameA());
@@ -322,6 +334,7 @@ public class ConversationActivity extends AppCompatActivity {
             })
                     .setActionTextColor(Color.WHITE).setDuration(100000).show();
         } else if (id == R.id.logout) { //logout
+            this.finish();
             Intent intent = new Intent(this, LoginActivity.class);
             this.startActivity(intent);
         }
@@ -480,10 +493,14 @@ public class ConversationActivity extends AppCompatActivity {
 
 
     @Override
-    protected void onRestart() {
-        super.onRestart();
-        refreshItemsFromTable(); // refresh conversations lists when activity restarts when pressing the back button mid conversation
+    public void onBackPressed()
+    {
+        super.onBackPressed();
+        Intent intent = new Intent(this, LoginActivity.class);
+        this.startActivity(intent);
+        this.finish();
     }
+
 
 
 }

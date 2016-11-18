@@ -405,4 +405,11 @@ public class LoginActivity extends AppCompatActivity {
         builder.setTitle(title);
         builder.create().show();
     }
+
+    @Override
+    public void onBackPressed()
+    {
+        super.onBackPressed();
+        this.finish();
+    }
 }

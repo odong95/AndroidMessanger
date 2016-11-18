@@ -429,6 +429,8 @@ public class ConversationActivity extends AppCompatActivity {
             this.finish();
             Intent intent = new Intent(this, LoginActivity.class);
             this.startActivity(intent);
+        } else if (id == R.id.refreshConv) {
+            refreshItemsFromTable();
         }
 
         return super.onOptionsItemSelected(item);

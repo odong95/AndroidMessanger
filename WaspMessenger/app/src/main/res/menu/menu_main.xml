@@ -2,6 +2,8 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     tools:context="com.waspteam.waspmessenger.ConversationActivity">
+    <item android:title="Refresh Conversations"
+        android:id="@+id/refreshConv" />
     <item android:title="View Current Handle"
         android:orderInCategory="100"
         android:checkable="false"

@@ -359,4 +359,12 @@ public class MessagingActivity extends AppCompatActivity {
             messageHandler.postDelayed(this, 3*1000 );
         }
     };
+
+    @Override
+    public void onBackPressed()
+    {
+        super.onBackPressed();
+        messageHandler.removeCallbacks(messageRefresh);
+        this.finish();
+    }
 }

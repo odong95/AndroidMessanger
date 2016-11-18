@@ -9,6 +9,8 @@ public class Conversation
 
     @com.google.gson.annotations.SerializedName("id")
     public String mId;
+    @com.google.gson.annotations.SerializedName("createdAt")
+    public String mDate;
     @com.google.gson.annotations.SerializedName("handleB")
     public String mHandleB;
     @com.google.gson.annotations.SerializedName("nicknameA")
@@ -17,6 +19,10 @@ public class Conversation
     public String mHandleA;
     @com.google.gson.annotations.SerializedName("nicknameB")
     public String mNicknameB;
+    @com.google.gson.annotations.SerializedName("readyA")
+    public boolean mReadyA;
+    @com.google.gson.annotations.SerializedName("readyB")
+    public boolean mReadyB;
 
     public boolean isExist = false;
     public Conversation()

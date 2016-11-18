@@ -25,9 +25,15 @@ import com.microsoft.windowsazure.mobileservices.table.MobileServiceTable;
 import com.squareup.okhttp.OkHttpClient;
 import com.google.common.util.concurrent.ListenableFuture;
 
+import java.security.MessageDigest;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+
+import javax.crypto.Cipher;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
 
 import static com.microsoft.windowsazure.mobileservices.table.query.QueryOperations.val;
 
@@ -40,6 +46,10 @@ public class MessagingActivity extends AppCompatActivity {
     private String mToHandle;
     private String mMyNick;
     private String mMyHandle;
+
+    //The AES key bytes which will require reconstruction
+    private byte[] mSecretKeyBytes;
+    SecretKey mSecretKey;
 
     MessageAdapter mAdapter;
 
@@ -86,6 +96,14 @@ public class MessagingActivity extends AppCompatActivity {
             mMyNick = bundle.getString("EXTRA_MYNICKNAME");
             mToHandle = bundle.getString("EXTRA_TOHANDLE");
             mToNick = bundle.getString("EXTRA_TONICK");
+            mSecretKeyBytes = bundle.getByteArray("EXTRA_SECRETKEY");
+
+            //Reconstruct AES SecretKey from bytes
+            if(mSecretKeyBytes.length!=16)
+            {
+                throw new RuntimeException();
+            }
+            mSecretKey = new SecretKeySpec(mSecretKeyBytes,0,16,"AES");
 
             setTitle(mToNick);
             refreshItemsFromTable(); //refresh message list
@@ -130,8 +148,9 @@ public class MessagingActivity extends AppCompatActivity {
 
     }
 
-    public void sendMessage(View view) {
-        final Message newMessage = new Message(mMyHandle, mToHandle, mMessageEdit.getText().toString(), mMyNick, mMyHandle);
+    public void sendMessage(View view)
+    {
+        final Message newMessage = new Message(mMyHandle, mToHandle, encryptMessage(mMessageEdit.getText().toString()), mMyNick, mMyHandle, genDigest(mMessageEdit.getText().toString()));
         messageTable.insert(newMessage); //insert the message to the server table
         refreshItemsFromTable(); //refresh the message list
         mMessageEdit.setText("");
@@ -150,8 +169,20 @@ public class MessagingActivity extends AppCompatActivity {
                         @Override
                         public void run() {
                             mAdapter.clear();
-                            for (Message item : results) {
-                                mAdapter.add(item);
+                            for (Message item : results)
+                            {
+                                //DECRYPT THE STORED TEXT WITH OUR SECRET KEY
+                                item.setText(decryptMessage(item.getText()));
+                                if(genDigest(item.getText()).equals(item.getmDigest()))
+                                {
+                                    mAdapter.add(item);
+                                }
+                                else
+                                {
+
+                                    Snackbar.make(findViewById(R.id.messageEdit), "Some messages were not displayed due to tampering.", Snackbar.LENGTH_LONG)
+                                            .setAction("Action", null).show();
+                                }
                             }
 
                         }
@@ -230,6 +261,57 @@ public class MessagingActivity extends AppCompatActivity {
         createAndShowDialog(ex.getMessage(), title);
     }
 
+    private String encryptMessage(String cleartext)
+    {
+        try
+        {
+            byte[] cleartextBytes = cleartext.getBytes("ISO-8859-1");
+            Cipher aesCipher = Cipher.getInstance("AES");
+            aesCipher.init(Cipher.ENCRYPT_MODE, mSecretKey);
+            byte[] byteCipherText = aesCipher.doFinal(cleartextBytes);
+            return new String(byteCipherText,"ISO-8859-1");
+        }
+        catch(Exception e)
+        {
+            e.printStackTrace();
+        }
+
+        return "ENCRYPTION ERROR";
+    }
+
+    private String decryptMessage(String ciphertext)
+    {
+        try
+        {
+            byte[] cleartextBytes = ciphertext.getBytes("ISO-8859-1");
+            Cipher aesCipher = Cipher.getInstance("AES");
+            aesCipher.init(Cipher.DECRYPT_MODE, mSecretKey);
+            byte[] byteClearText = aesCipher.doFinal(cleartextBytes);
+            return new String(byteClearText,"ISO-8859-1");
+        }
+        catch(Exception e)
+        {
+            e.printStackTrace();
+        }
+
+        return "DECRYPTION ERROR";
+    }
+
+    public String genDigest(String cleartext)
+    {
+        try
+        {
+            MessageDigest digSha = MessageDigest.getInstance("SHA-1");
+            byte[] tagBytes = digSha.digest(cleartext.getBytes("ISO-8859-1"));
+            return new String(tagBytes,"ISO-8859-1");
+        }
+        catch(Exception e)
+        {
+            e.printStackTrace();
+        }
+
+        return "";
+    }
 
     private void createAndShowDialog(final String message, final String title) {
         final android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(this);

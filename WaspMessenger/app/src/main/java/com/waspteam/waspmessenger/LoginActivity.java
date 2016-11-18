@@ -18,8 +18,6 @@ import com.microsoft.windowsazure.mobileservices.http.OkHttpClientFactory;
 import com.microsoft.windowsazure.mobileservices.table.MobileServiceTable;
 import com.squareup.okhttp.OkHttpClient;
 
-import org.json.JSONObject;
-
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
@@ -50,6 +48,8 @@ public class LoginActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+
+
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
         final EditText etUsername = (EditText) findViewById(R.id.etUsername);
@@ -333,12 +333,6 @@ public class LoginActivity extends AppCompatActivity {
         PBEKeySpec key = new PBEKeySpec(password.toCharArray(), saltPepper, 100, 256);
         SecretKeyFactory keyGen = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA1");
         return keyGen.generateSecret(key).getEncoded();
-    }
-
-    private boolean checkPassword(String password, String hash, byte[] salt) throws NoSuchAlgorithmException, InvalidKeySpecException, IOException {
-        byte[] hashPass = hashPassword(password, salt);
-        boolean result = new String(hashPass, "ISO-8859-1").equals(hash);
-        return result;
     }
 
     private boolean isAvailable(final String username) throws ExecutionException, InterruptedException {

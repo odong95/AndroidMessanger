@@ -3,7 +3,6 @@ package com.waspteam.waspmessenger;
 
 import java.net.MalformedURLException;
 
-import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Intent;
 import android.os.AsyncTask;
@@ -17,7 +16,6 @@ import android.text.TextUtils;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ListView;
@@ -25,66 +23,36 @@ import android.graphics.Color;
 
 import java.util.List;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.security.SecureRandom;
 
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.SettableFuture;
-import com.microsoft.windowsazure.mobileservices.*;
 import com.microsoft.windowsazure.mobileservices.table.MobileServiceTable;
-import com.microsoft.windowsazure.mobileservices.http.NextServiceFilterCallback;
 import com.microsoft.windowsazure.mobileservices.http.OkHttpClientFactory;
-import com.microsoft.windowsazure.mobileservices.http.ServiceFilter;
-import com.microsoft.windowsazure.mobileservices.http.ServiceFilterRequest;
-import com.microsoft.windowsazure.mobileservices.http.ServiceFilterResponse;
-import com.microsoft.windowsazure.mobileservices.table.MobileServiceTable;
-import com.microsoft.windowsazure.mobileservices.table.query.Query;
-import com.microsoft.windowsazure.mobileservices.table.query.QueryOperations;
-import com.microsoft.windowsazure.mobileservices.table.sync.MobileServiceSyncContext;
-import com.microsoft.windowsazure.mobileservices.table.sync.MobileServiceSyncTable;
-import com.microsoft.windowsazure.mobileservices.table.sync.localstore.ColumnDataType;
-import com.microsoft.windowsazure.mobileservices.table.sync.localstore.MobileServiceLocalStoreException;
-import com.microsoft.windowsazure.mobileservices.table.sync.localstore.SQLiteLocalStore;
-import com.microsoft.windowsazure.mobileservices.table.sync.synchandler.SimpleSyncHandler;
 import com.squareup.okhttp.OkHttpClient;
 
-import java.net.MalformedURLException;
-
 import static com.microsoft.windowsazure.mobileservices.table.query.QueryOperations.*;
-import static com.waspteam.waspmessenger.R.string.generate_handle;
-
-import android.app.AlertDialog;
-import android.os.Bundle;
-import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
-import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.Toolbar;
-import android.text.TextUtils;
-import android.view.View;
-import android.view.Menu;
-import android.view.MenuItem;
-import android.widget.EditText;
-import android.widget.LinearLayout;
-import android.widget.ListView;
-import android.content.DialogInterface;
 
 import com.microsoft.windowsazure.mobileservices.MobileServiceClient;
-import com.microsoft.windowsazure.mobileservices.table.MobileServiceTable;
-
-import java.net.MalformedURLException;
 
 
 public class ConversationActivity extends AppCompatActivity {
+    Semaphore insertSem;
+
     private EditText mConversationName, mConversationCode;
     private MobileServiceClient mClient;
     private MobileServiceTable<Conversation> mConvoTable;
     private MobileServiceTable<User> mUserTable;
+    private MobileServiceTable<ConversationKey> mKeyTable;
     private MobileServiceTable<Message> mMessageTable;
     private String mUsername;
     private String mHandle = "";
     ConversationAdapter mAdapter;
+
+    private CryptoGenerator cryptoGen;
 
     static final String AB = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
     static SecureRandom rnd = new SecureRandom();
@@ -96,6 +64,7 @@ public class ConversationActivity extends AppCompatActivity {
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
+        insertSem = new Semaphore(0);
 
         mConversationName = (EditText) findViewById(R.id.newConversationNickname);
         mConversationCode = (EditText) findViewById(R.id.newConversationHandleCode);
@@ -103,6 +72,10 @@ public class ConversationActivity extends AppCompatActivity {
         //Gets String passed the login activity
         Intent intent = getIntent();
         mUsername = intent.getStringExtra("username");
+        //mHandle = intent.getStringExtra("handle");
+
+        //This is the crypto generator that will be doing key exchange and fetching keys from file storage
+        cryptoGen = new CryptoGenerator(this.getApplicationContext(), mUsername);
 
         mAdapter = new ConversationAdapter(this, R.layout.row_conversation);
         ListView listViewConversation = (ListView) findViewById(R.id.listView_conversation);
@@ -118,6 +91,7 @@ public class ConversationActivity extends AppCompatActivity {
             mConvoTable = mClient.getTable(Conversation.class);
             mUserTable = mClient.getTable(User.class);
             mMessageTable = mClient.getTable(Message.class);
+            mKeyTable = mClient.getTable(ConversationKey.class);
 
             mClient.setAndroidHttpClientFactory(new OkHttpClientFactory() {
                 @Override
@@ -192,21 +166,56 @@ public class ConversationActivity extends AppCompatActivity {
                                 mAdapter.clear();
 
                                 addConversation.mNicknameA = nick;
-                                if(results.size() > 0) { //start anon conversation if its a handlecode
+                                if (results.size() > 0) { //start anon conversation if its a handlecode
                                     u = results.get(0);
                                     addConversation.mNicknameB = u.handle;
                                     addConversation.mHandleB = handle;
                                     addConversation.mHandleA = mHandle;
-                                }
-                                else //start known conversation if its a username
+                                } else //start known conversation if its a username
                                 {
-                                    u= results2.get(0);
+                                    u = results2.get(0);
                                     addConversation.mNicknameB = u.username;
                                     addConversation.mHandleB = handle;
                                     addConversation.mHandleA = mUsername;
                                 }
-                                mConvoTable.insert(addConversation); //insert conversation to table
-                                mAdapter.add(addConversation); //add it to the view
+                                ListenableFuture<Conversation> insertResults = mConvoTable.insert(addConversation); //insert conversation to table
+
+                                Futures.addCallback(insertResults, new FutureCallback<Conversation>()
+                                {
+                                    @Override
+                                    public void onFailure(Throwable e) {
+                                        //Failure is already handled in main thread
+                                    }
+
+                                    @Override
+                                    public void onSuccess(Conversation result) {
+
+                                        try {
+                                            //DO PHASE 1 OF DIFFIE HELLMAN CRYPTOGRAPHIC KEY EXCHANGE
+                                            ConversationKey addKeySet = new ConversationKey();
+                                            addKeySet.mDate = result.mDate;
+                                            addKeySet.mId = result.mId;
+                                            addKeySet.mKeyA = cryptoGen.Phase1(result.mId + result.mDate);
+                                            mKeyTable.insert(addKeySet);
+                                            insertSem.release();
+                                        } catch (Exception e) {
+                                            e.printStackTrace();
+                                        }
+                                    }
+
+                                });
+
+                                try
+                                {
+                                    insertSem.wait();
+                                }
+                                catch(Exception e)
+                                {
+                                    e.printStackTrace();
+                                }
+
+                                createAndShowDialog("Your conversation request has been sent. It will appear when your partner agrees.", "New Conversation");
+
                                 refreshItemsFromTable();
                             }
                         });
@@ -225,7 +234,8 @@ public class ConversationActivity extends AppCompatActivity {
                     return null;
 
 
-                } catch (final Exception e) {
+                }
+                catch (final Exception e) {
                     createAndShowDialogFromTask(e, "Error");
                 }
                 return null;
@@ -237,29 +247,105 @@ public class ConversationActivity extends AppCompatActivity {
 
     //refresh conversation lists
     public void refreshItemsFromTable() {
-        AsyncTask<Void, Void, Void> task = new AsyncTask<Void, Void, Void>() {
+        AsyncTask<Void, Void, Void> task = new AsyncTask<Void, Void, Void>()
+        {
             @Override
-            protected Void doInBackground(Void... params) {
+            protected Void doInBackground(Void... params)
+            {
 
-                try {
+                try
+                {
                     final List<User> user = mUserTable.where().field("username").eq(mUsername).execute().get();
                     final User u = user.get(0);
                     mHandle = u.handle;
                     final List<Conversation> results = refreshItemsFromConvoTable(); //find user's handle in handleA conversations
                     final List<Conversation> results2 = refreshItemsFromConvoTable2(); //find user's handle in handleB conversations
+
+                    //Do key exchange work for user in handleA
+                    for(Conversation item: results)
+                    {
+                        if (item.mReadyB && !item.mReadyA) {
+
+                            //Do Phase 3 of key exchange
+                            List<ConversationKey> keyTuple = mKeyTable.where(field("id").eq(val(item.mId)))
+                                                                        .and(field("convCreatedAt").eq(val(item.mDate)))
+                                                                        .execute().get();
+
+                            if(keyTuple.size()!=1)
+                            {
+                                //Problem retrieving the proper key
+                                throw new Exception();
+                            }
+
+                            if(cryptoGen.Phase3(item.mId + item.mDate, keyTuple.get(0).mKeyB))
+                            {
+                                item.mReadyA=true;
+                                mConvoTable.update(item);
+                            }
+                            else
+                            {
+                                //The crypto failed
+                                throw new Exception();
+                            }
+                        }
+                    }
+
+                    for(Conversation item2: results2)
+                    {
+                        if (!item2.mReadyA && !item2.mReadyB)
+                        {
+
+                            //Do Phase 2 of key Exchange
+
+                            List<ConversationKey> keyList = mKeyTable.where(field("id").eq(val(item2.mId)))
+                                                                        .and(field("convCreatedAt").eq(val(item2.mDate)))
+                                                                        .execute().get();
+
+                            if(keyList.size()!=1)
+                            {
+                                //Problem retrieving the proper key
+                                throw new Exception();
+                            }
+
+                            //Get and send B Public Key to key table
+                            keyList.get(0).mKeyB = cryptoGen.Phase2(item2.mId + item2.mDate, keyList.get(0).mKeyA);
+                            mKeyTable.update(keyList.get(0));
+
+                            //Update conversation as ready for B to send messages
+                            item2.mReadyB=true;
+                            mConvoTable.update(item2);
+
+                        }
+                    }
+
                     runOnUiThread(new Runnable() {
                         @Override
-                        public void run() {
+                        public void run()
+                        {
+                            try {
 
-                            mAdapter.clear();
-                            //add it to the view depending on whether its in handle A or B, hence isExist()
-                            for (Conversation item : results) {
-                                item.isExist = true;
-                                mAdapter.add(item);
+                                mAdapter.clear();
+                                //add it to the view depending on whether its in handle A or B, hence isExist()
+                                for (Conversation item : results) {
+                                    item.isExist = true;
+
+                                    if (item.mReadyA) {
+                                        mAdapter.add(item);
+                                    }
+                                }
+                                for (Conversation item2 : results2)
+                                {
+                                    item2.isExist = false;
+
+                                    if (item2.mReadyB)
+                                    {
+                                        mAdapter.add(item2);
+                                    }
+                                }
                             }
-                            for (Conversation item2 : results2) {
-                                item2.isExist = false;
-                                mAdapter.add(item2);
+                            catch(Exception e)
+                            {
+                                e.printStackTrace();
                             }
                         }
                     });
@@ -275,7 +361,8 @@ public class ConversationActivity extends AppCompatActivity {
     }
 
     //start messaging activity
-    public void startMessaging(View view, Conversation c) {
+    public void startMessaging(View view, Conversation c)
+    {
         Intent intent = new Intent(view.getContext(), MessagingActivity.class);
         Bundle bundle = new Bundle();
         bundle.putString("EXTRA_MYUSERNAME", mUsername);
@@ -304,6 +391,11 @@ public class ConversationActivity extends AppCompatActivity {
             bundle.putString("EXTRA_TOHANDLE", c.mHandleA);
             bundle.putString("EXTRA_TONICK", c.getNicknameA());
         }
+
+        //Fetch the secret key stored for this conversation
+        String keyTag = c.mId+c.mDate;
+        byte[] secretKey = cryptoGen.getSecretKey(keyTag);
+        bundle.putByteArray("EXTRA_SECRETKEY",secretKey);
 
         intent.putExtras(bundle);
         view.getContext().startActivity(intent);

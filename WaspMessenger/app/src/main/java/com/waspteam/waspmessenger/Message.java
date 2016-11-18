@@ -18,12 +18,14 @@ public class Message
     @com.google.gson.annotations.SerializedName("id")
     private String id;
     private String handle;
+    @com.google.gson.annotations.SerializedName("digest")
+    private String mDigest;
     public Message()
     {
 
     }
 
-    public Message(String from, String to, String text, String nick,String handle)
+    public Message(String from, String to, String text, String nick,String handle, String digest)
     {
         mFrom=from;
         mTo=to;
@@ -33,6 +35,7 @@ public class Message
         Calendar cal = Calendar.getInstance();
         SimpleDateFormat sdf = new SimpleDateFormat("MMM d, h:mm a");
         mTimestamp=sdf.format(cal.getTime());;
+        mDigest=digest;
     }
 
     @Override
@@ -57,6 +60,8 @@ public class Message
         mTimestamp=time;
     }
 
+    public void setDigest(String digestIn) {mDigest=digestIn;}
+
     public String getText()
     {
         return mText;
@@ -75,5 +80,7 @@ public class Message
     {
         return mTimestamp;
     }
+
+    public String getmDigest() {return mDigest; }
 
 }

@@ -23,7 +23,6 @@ import android.graphics.Color;
 
 import java.util.List;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.security.SecureRandom;
 
@@ -40,7 +39,6 @@ import com.microsoft.windowsazure.mobileservices.MobileServiceClient;
 
 
 public class ConversationActivity extends AppCompatActivity {
-    Semaphore insertSem;
 
     private EditText mConversationName, mConversationCode;
     private MobileServiceClient mClient;
@@ -52,6 +50,7 @@ public class ConversationActivity extends AppCompatActivity {
     private String mHandle = "";
     ConversationAdapter mAdapter;
 
+    //Handles all key exchange calculation and key retrieval from memory
     private CryptoGenerator cryptoGen;
 
     static final String AB = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
@@ -63,8 +62,6 @@ public class ConversationActivity extends AppCompatActivity {
         setContentView(R.layout.activity_conversation);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-
-        insertSem = new Semaphore(0);
 
         mConversationName = (EditText) findViewById(R.id.newConversationNickname);
         mConversationCode = (EditText) findViewById(R.id.newConversationHandleCode);
@@ -155,6 +152,7 @@ public class ConversationActivity extends AppCompatActivity {
             protected Void doInBackground(Void... params) {
 
                 try {
+                    //doingCrypto=true;
                     final List<User> results = checkUser(handle); //checks for handlecode
                     final List<User> results2 = checkUser2(handle); //checks for username
 
@@ -197,7 +195,6 @@ public class ConversationActivity extends AppCompatActivity {
                                             addKeySet.mId = result.mId;
                                             addKeySet.mKeyA = cryptoGen.Phase1(result.mId + result.mDate);
                                             mKeyTable.insert(addKeySet);
-                                            insertSem.release();
                                         } catch (Exception e) {
                                             e.printStackTrace();
                                         }
@@ -205,16 +202,9 @@ public class ConversationActivity extends AppCompatActivity {
 
                                 });
 
-                                try
-                                {
-                                    insertSem.wait();
-                                }
-                                catch(Exception e)
-                                {
-                                    e.printStackTrace();
-                                }
 
-                                createAndShowDialog("Your conversation request has been sent. It will appear when your partner agrees.", "New Conversation");
+                                Snackbar.make(findViewById(R.id.fab), "Conversation sent! It will appear after the other user recieves the confirmation.", Snackbar.LENGTH_LONG)
+                                        .setAction("Action", null).show();
 
                                 refreshItemsFromTable();
                             }

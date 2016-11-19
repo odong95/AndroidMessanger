@@ -3,9 +3,6 @@ package com.waspteam.waspmessenger;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 
-/**
- * Created by Julian on 11/8/2016.
- */
 
 public class Message
 {

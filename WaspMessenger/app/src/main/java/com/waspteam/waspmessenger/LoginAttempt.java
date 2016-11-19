@@ -1,9 +1,5 @@
 package com.waspteam.waspmessenger;
 
-/**
- * Created by Julian on 11/14/2016.
- */
-
 public class LoginAttempt
 {
     @com.google.gson.annotations.SerializedName("valid")

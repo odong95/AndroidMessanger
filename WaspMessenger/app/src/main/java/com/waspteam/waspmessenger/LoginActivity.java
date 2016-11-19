@@ -49,7 +49,7 @@ public class LoginActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
-
+        //Initial setup
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
         final EditText etUsername = (EditText) findViewById(R.id.etUsername);
@@ -57,9 +57,11 @@ public class LoginActivity extends AppCompatActivity {
         final Button Register = (Button) findViewById(R.id.bRegister);
         final Button bLogin = (Button) findViewById(R.id.bLogin);
 
+        //Used to track asynchronous login
         loginResult = false;
         userSalt = null;
 
+        //Setup Azure services access
         try {
             mClient = new MobileServiceClient("https://waspsmessenger.azurewebsites.net", this);
             mClientAPI = new MobileServiceClient("https://waspsmessenger.azurewebsites.net/api", this);
@@ -83,7 +85,7 @@ public class LoginActivity extends AppCompatActivity {
                     .create().show();
         }
 
-
+        //Listeners for buttons
         Register.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -177,6 +179,7 @@ public class LoginActivity extends AppCompatActivity {
 
     }
 
+    //Performs registration
     public boolean register(String username, String password) {
         try {
 

@@ -22,11 +22,6 @@ import javax.crypto.interfaces.DHPublicKey;
 import javax.crypto.spec.DHParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
-/**
- * Created by Julian on 11/16/2016.
- */
-
-
 
 public class CryptoGenerator
 {
@@ -235,7 +230,7 @@ public class CryptoGenerator
         {
             //Setup Diffie Hellman Parameters
             AlgorithmParameterGenerator apg = AlgorithmParameterGenerator.getInstance("DH");
-            apg.init(1024);
+            apg.init(512);
             AlgorithmParameters params = apg.generateParameters();
             DHParameterSpec dhParamSpecA = params.getParameterSpec(DHParameterSpec.class);
 

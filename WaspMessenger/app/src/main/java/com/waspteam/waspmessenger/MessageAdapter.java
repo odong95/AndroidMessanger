@@ -9,10 +9,6 @@ import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.TextView;
 
-/**
- * Created by Julian on 11/8/2016.
- */
-
 public class MessageAdapter extends ArrayAdapter<Message>
 {
     Context mContext;

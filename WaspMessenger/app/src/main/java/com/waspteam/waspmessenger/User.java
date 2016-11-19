@@ -3,10 +3,6 @@ package com.waspteam.waspmessenger;
 import java.io.UnsupportedEncodingException;
 import java.security.SecureRandom;
 
-/**
- * Created by jsb140330 on 11/10/2016.
- */
-
 public class User {
     @com.google.gson.annotations.SerializedName("id")
     public String mId;
